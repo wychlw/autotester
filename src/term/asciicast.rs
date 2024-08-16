@@ -47,7 +47,23 @@ where
 
         return Ok(data);
     }
+    fn read_line(&mut self) -> Result<Vec<u8>, Box<dyn Error>> {
+        let data = self.inner.read_line();
+        if let Err(e) = data {
+            return Err(e);
+        }
+        let data = data.unwrap();
 
+        if self.begin {
+            let time = self.begin_time.elapsed().unwrap();
+            let timestamp = time.as_micros();
+            let timestamp = timestamp as f64 / 1000.0;
+            let line = format!("{{\"timestamp\": {}, \"event\": \"o\", \"data\": \"{}\"}}\n", timestamp, String::from_utf8(data.clone()).unwrap());
+            self.logged.extend(line.as_bytes());
+        }
+
+        return Ok(data);
+    }
     fn write(&mut self, data: &[u8]) -> Result<(), Box<dyn Error>> {
         let res = self.inner.write(data);
 

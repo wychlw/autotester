@@ -65,19 +65,18 @@ impl Shell {
         };
 
         let buff_clone = res.buff.clone();
-        let handle = spawn(move || {
-            let mut buff = buff_clone.lock().unwrap();
-            loop {
-                let mut buf = [0; 10];
-                let sz = reader.read(&mut buf);
-                if let Err(e) = sz {
-                    err(format!("Read from shell process failed. Reason: {}", e));
-                    break;
-                }
-                let sz = sz.unwrap();
-                // log(format!("Read from shell process, len {}: {:?}", sz, buf));
-                buff.extend_from_slice(&buf);
+        let handle = spawn(move || loop {
+            let mut buf = [0u8];
+            let sz = reader.read(&mut buf);
+            if let Err(e) = sz {
+                err(format!("Read from shell process failed. Reason: {}", e));
+                break;
             }
+            if buf[0] == 0x0 {
+                continue;
+            }
+            let mut buff = buff_clone.lock().unwrap();
+            buff.extend_from_slice(&buf);
         });
 
         res.handle = Some(handle);
@@ -92,8 +91,32 @@ impl Tty for Shell {
         let mut buff = self.buff.lock().unwrap();
         res.extend(buff.iter());
         buff.clear();
+        if res.len() > 0 {
+            log(format!(
+                "Read from shell process, len {}: {:?}",
+                res.len(),
+                String::from_utf8(res.clone()).unwrap()
+            ));
+        }
+        return Ok(res);
+    }
+    fn read_line(&mut self) -> Result<Vec<u8>, Box<dyn Error>> {
+        let mut res = Vec::new();
+        let mut buff = self.buff.lock().unwrap();
+        let mut i = 0;
+        while i < buff.len() {
+            if buff[i] == 0x0A {
+                break;
+            }
+            i += 1;
+        }
+        if i == buff.len() {
+            return Ok(res);
+        }
+        res.extend_from_slice(&buff[0..i + 1]);
+        buff.drain(0..i + 1);
         log(format!(
-            "Read from shell process, len {}: {:?}",
+            "Read line from shell process, len {}: {:?}",
             res.len(),
             String::from_utf8(res.clone()).unwrap()
         ));

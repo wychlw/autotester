@@ -50,7 +50,19 @@ where
 
         return Ok(data);
     }
+    fn read_line(&mut self) -> Result<Vec<u8>, Box<dyn Error>> {
+        let data = self.inner.read_line();
+        if let Err(e) = data {
+            return Err(e);
+        }
+        let data = data.unwrap();
 
+        if self.begin {
+            self.logged.extend(data.clone());
+        }
+
+        return Ok(data);
+    }
     fn write(&mut self, data: &[u8]) -> Result<(), Box<dyn Error>> {
         let res = self.inner.write(data);
         if let Err(e) = res {

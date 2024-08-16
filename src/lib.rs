@@ -6,4 +6,5 @@ pub mod term {
     pub mod serial;
     pub mod shell;
     pub mod tty;
+    // pub mod pipereader;
 }

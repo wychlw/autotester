@@ -27,10 +27,12 @@ impl Serial {
 
 impl Tty for Serial {
     fn read(&mut self) -> Result<Vec<u8>, Box<dyn Error>> {
-        let mut buf = Vec::with_capacity(1024);
+        let mut buf = Vec::new();
         loop {
-            match self.inner.read(&mut buf) {
+            let mut buff = [0u8];
+            match self.inner.read(&mut buff) {
                 Ok(sz) => {
+                    buf.extend_from_slice(&buff);
                     log(format!("Read from serial port, len {}: {:?}", sz, buf));
                     return Ok(buf);
                 }
@@ -42,7 +44,27 @@ impl Tty for Serial {
             }
         }
     }
-
+    fn read_line(&mut self) -> Result<Vec<u8>, Box<dyn Error>> {
+        let mut buf = Vec::new();
+        loop {
+            let mut buff = [0u8];
+            match self.inner.read(&mut buff) {
+                Ok(sz) => {
+                    if buff[0] == 0x0A {
+                        buf.extend_from_slice(&buff);
+                        log(format!("Read line from serial port, len {}: {:?}", sz, buf));
+                        return Ok(buf);
+                    }
+                    buf.extend_from_slice(&buff);
+                }
+                Err(e) if e.kind() == ErrorKind::Interrupted => continue,
+                Err(e) => {
+                    err(format!("Read line from serial port failed. Reason: {}", e));
+                    return Err(Box::new(e));
+                }
+            }
+        }
+    }
     fn write(&mut self, data: &[u8]) -> Result<(), Box<dyn Error>> {
         loop {
             match self.inner.write_all(data) {
