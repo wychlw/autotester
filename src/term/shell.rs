@@ -1,7 +1,7 @@
 use std::{
     error::Error,
-    io::{BufRead, BufReader, Chain, ErrorKind, Read, Write},
-    process::{Child, ChildStderr, ChildStdin, ChildStdout, Command, Stdio},
+    io::{BufReader, ErrorKind, Read, Write},
+    process::{Child, ChildStdin, Command, Stdio},
     sync::{Arc, Mutex},
     thread::{spawn, JoinHandle},
 };

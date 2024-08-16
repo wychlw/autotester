@@ -1,12 +1,5 @@
-use std::{
-    io::{BufReader, Read, Write},
-    process::{Command, Stdio},
-};
 
-use tester::{
-    logger::log,
-    term::{shell::Shell, tty::Tty},
-};
+use tester::term::{shell::Shell, tty::Tty};
 
 fn main() {
     let mut shell = Shell::build(None).unwrap();
@@ -17,7 +10,7 @@ fn main() {
     loop {
         let data = shell.read_line().unwrap();
         let s = String::from_utf8(data).unwrap();
-        if s.len() >= 1 {
+        if !s.is_empty() {
             print!("Recv1: {:#?}", s);
         }
         if s.contains("World") {
@@ -32,7 +25,7 @@ fn main() {
 
     loop {
         let data = shell.read_line().unwrap();
-        if data.len() >= 1 {
+        if !data.is_empty() {
             print!("Recv2: {:#?}", String::from_utf8(data).unwrap());
             continue;
         }
