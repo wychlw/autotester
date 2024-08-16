@@ -3,10 +3,11 @@ use std::{
     io::{BufReader, ErrorKind, Read, Write},
     process::{ChildStdin, Command, Stdio},
     sync::{Arc, Mutex},
-    thread::{spawn, JoinHandle},
+    thread::{sleep, spawn, JoinHandle},
+    time::Duration,
 };
 
-use crate::logger::{err, log};
+use crate::{consts::SHELL_DURATION, logger::{err, log}};
 
 use super::tty::Tty;
 
@@ -69,11 +70,12 @@ impl Shell {
         let buff_clone = res.buff.clone();
         let stop_clone = res.stop.clone();
         let handle = spawn(move || loop {
+            sleep(Duration::from_millis(SHELL_DURATION));
             {
                 let stop = stop_clone.lock().unwrap();
                 if *stop {
                     log("Stop shell process");
-                    break;
+                    return;
                 }
             }
             let mut buf = [0u8];
@@ -123,13 +125,6 @@ impl Tty for Shell {
         let mut buff = self.buff.lock().unwrap();
         res.extend(buff.iter());
         buff.clear();
-        if res.len() > 0 {
-            log(format!(
-                "Read from shell process, len {}: {:?}",
-                res.len(),
-                String::from_utf8(res.clone()).unwrap()
-            ));
-        }
         return Ok(res);
     }
     fn read_line(&mut self) -> Result<Vec<u8>, Box<dyn Error>> {
@@ -147,24 +142,13 @@ impl Tty for Shell {
         }
         res.extend_from_slice(&buff[0..i + 1]);
         buff.drain(0..i + 1);
-        log(format!(
-            "Read line from shell process, len {}: {:?}",
-            res.len(),
-            String::from_utf8(res.clone()).unwrap()
-        ));
         return Ok(res);
     }
     fn write(&mut self, data: &[u8]) -> Result<(), Box<dyn Error>> {
         loop {
+            sleep(Duration::from_millis(SHELL_DURATION));
             match self.stdin.write_all(data) {
-                Ok(_) => {
-                    log(format!(
-                        "Write to shell process, len {}: {:?}",
-                        data.len(),
-                        String::from_utf8(data.to_vec()).unwrap()
-                    ));
-                    break;
-                }
+                Ok(_) => break,
                 Err(e) if e.kind() == ErrorKind::Interrupted => continue,
                 Err(e) => {
                     err(format!("Write to shell process failed. Reason: {}", e));

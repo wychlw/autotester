@@ -3,7 +3,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use crate::{logger::err, term::tty::Tty, util::rand_string};
+use crate::{consts::DURATION, logger::err, term::tty::Tty, util::rand_string};
 
 use super::cli_api::{CliTestApi, SudoCliTestApi};
 
@@ -70,6 +70,7 @@ where
 
         let mut buf = Vec::new();
         loop {
+            sleep(Duration::from_millis(DURATION));
             let res = self.inner.read();
             if let Err(e) = res {
                 return Err(e);
@@ -87,7 +88,6 @@ where
                 ));
                 return Err(Box::<dyn std::error::Error>::from("Timeout"));
             }
-            sleep(Duration::from_millis(100));
         }
         Ok(())
     }

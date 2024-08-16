@@ -1,5 +1,6 @@
 pub mod logger;
 pub mod util;
+pub mod consts;
 pub mod term {
     pub mod asciicast;
     pub mod recorder;

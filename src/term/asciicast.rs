@@ -1,7 +1,15 @@
-use std::{collections::HashMap, error::Error, time::SystemTime};
+use std::{
+    collections::HashMap,
+    error::Error,
+    sync::{Arc, Mutex},
+    thread::{sleep, spawn, JoinHandle},
+    time::{Duration, SystemTime},
+};
 
 use asciicast::{Entry, EventType, Header};
 use serde_json::to_string;
+
+use crate::consts::DURATION;
 
 use super::{recorder::Recorder, tty::Tty};
 
@@ -9,20 +17,24 @@ pub struct Asciicast<T>
 where
     T: Tty,
 {
-    inner: T,
+    inner: Arc<Mutex<Option<T>>>,
     head: Header,
-    logged: Vec<Entry>,
-    begin: bool,
-    begin_time: SystemTime,
+    data: Arc<Mutex<Vec<u8>>>,
+    logged: Arc<Mutex<Vec<Entry>>>,
+    begin: Arc<Mutex<bool>>,
+    begin_time: Arc<Mutex<SystemTime>>,
+    thread: Option<JoinHandle<()>>,
 }
 
 impl<T> Asciicast<T>
 where
-    T: Tty,
+    T: Tty + Send + 'static,
 {
     pub fn build(inner: T) -> Asciicast<T> {
-        Asciicast {
-            inner,
+        let inner = Arc::new(Mutex::new(Some(inner)));
+
+        let mut res = Asciicast::<T> {
+            inner: inner.clone(),
             head: Header {
                 version: 2,
                 width: 80,
@@ -32,16 +44,58 @@ where
                 idle_time_limit: None,
                 command: None,
                 title: None,
-                env: None,
-                // env: HashMap::from([
-                //     ("SHELL".to_string(), "/bin/sh".to_string()),
-                //     ("TERM".to_string(), "VT100".to_string()),
-                // ]),
+                env: Some(HashMap::from([
+                    ("SHELL".to_string(), "/bin/sh".to_string()),
+                    ("TERM".to_string(), "VT100".to_string()),
+                ])),
             },
-            logged: Vec::new(),
-            begin: false,
-            begin_time: SystemTime::now(),
-        }
+            data: Arc::new(Mutex::new(Vec::new())),
+            logged: Arc::new(Mutex::new(Vec::new())),
+            begin: Arc::new(Mutex::new(false)),
+            begin_time: Arc::new(Mutex::new(SystemTime::now())),
+            thread: None,
+        };
+
+        let inner = inner.clone();
+        let data = res.data.clone();
+        let logged = res.logged.clone();
+        let begin = res.begin.clone();
+        let begin_time = res.begin_time.clone();
+        let process = move || loop {
+            sleep(Duration::from_millis(DURATION));
+            let mut inner = inner.lock().unwrap();
+            if inner.is_none() {
+                return;
+            }
+            let inner = inner.as_mut().unwrap();
+            let new_data = inner.read();
+            if let Err(_) = new_data {
+                return;
+            }
+            let new_data = new_data.unwrap();
+
+            let begin = begin.lock().unwrap();
+            if *begin && !new_data.is_empty() {
+                let time = begin_time.lock().unwrap().elapsed().unwrap();
+                let timestamp = time.as_millis();
+                let timestamp = timestamp as f64 / 1000.0;
+                let mut logged = logged.lock().unwrap();
+                logged.push(Entry {
+                    time: timestamp,
+                    event_type: EventType::Output,
+                    event_data: String::from_utf8(new_data.clone()).unwrap(),
+                });
+            }
+
+            let mut data = data.lock().unwrap();
+            data.extend(new_data);
+        };
+
+        let thread = spawn(process);
+
+        res.thread = Some(thread);
+
+        res
     }
 }
 
@@ -50,57 +104,57 @@ where
     T: Tty,
 {
     fn read(&mut self) -> Result<Vec<u8>, Box<dyn Error>> {
-        let data = self.inner.read();
-        if let Err(e) = data {
-            return Err(e);
+        let data = self.data.lock();
+        if let Err(_) = data {
+            return Err(Box::<dyn Error>::from("Read from Asciicast failed."));
         }
-        let data = data.unwrap();
+        let mut data = data.unwrap();
+        let res = data.clone();
+        data.clear();
 
-        if self.begin && !data.is_empty() {
-            let time = self.begin_time.elapsed().unwrap();
-            let timestamp = time.as_millis();
-            let timestamp = timestamp as f64 / 1000.0;
-            self.logged.push(Entry {
-                time: timestamp,
-                event_type: EventType::Output,
-                event_data: String::from_utf8(data.clone()).unwrap(),
-            });
-        }
-
-        return Ok(data);
+        return Ok(res);
     }
     fn read_line(&mut self) -> Result<Vec<u8>, Box<dyn Error>> {
-        let data = self.inner.read_line();
-        if let Err(e) = data {
-            return Err(e);
+        let mut res = Vec::new();
+        loop {
+            sleep(Duration::from_millis(DURATION));
+            let mut data = self.data.lock().unwrap();
+            if data.is_empty() {
+                continue;
+            }
+            res.push(data[0]);
+            data.drain(0..1);
+            if res.ends_with(&[0x0A]) {
+                break;
+            }
         }
-        let data = data.unwrap();
-
-        if self.begin && !data.is_empty() {
-            let time = self.begin_time.elapsed().unwrap();
-            let timestamp = time.as_millis();
-            let timestamp = timestamp as f64 / 1000.0;
-            self.logged.push(Entry {
-                time: timestamp,
-                event_type: EventType::Output,
-                event_data: String::from_utf8(data.clone()).unwrap(),
-            });
-        }
-
-        return Ok(data);
+        return Ok(res);
     }
     fn write(&mut self, data: &[u8]) -> Result<(), Box<dyn Error>> {
-        if self.begin {
-            let time = self.begin_time.elapsed().unwrap();
+        let begin = self.begin.lock();
+        if let Err(_) = begin {
+            return Err(Box::<dyn Error>::from("Recorder not started."));
+        }
+        let begin = begin.unwrap();
+        if *begin {
+            let begin_time = self.begin_time.lock().unwrap();
+            let time = begin_time.elapsed().unwrap();
             let timestamp = time.as_millis();
             let timestamp = timestamp as f64 / 1000.0;
-            self.logged.push(Entry {
+            let mut logged = self.logged.lock().unwrap();
+            logged.push(Entry {
                 time: timestamp,
                 event_type: EventType::Input,
                 event_data: String::from_utf8(data.to_vec()).unwrap(),
             });
         }
-        let res = self.inner.write(data);
+
+        let mut inner = self.inner.lock().unwrap();
+        if inner.is_none() {
+            return Err(Box::<dyn Error>::from("You've already exited."));
+        }
+        let inner = inner.as_mut().unwrap();
+        let res = inner.write(data);
 
         res
     }
@@ -111,46 +165,62 @@ where
     T: Tty,
 {
     fn begin(&mut self) -> Result<(), Box<dyn Error>> {
-        self.logged.clear();
-        self.head = Header {
-            version: 2,
-            width: 80,
-            height: 24,
-            timestamp: None,
-            duration: None,
-            idle_time_limit: None,
-            command: None,
-            title: None,
-            env: Some(HashMap::from([
-                ("SHELL".to_string(), "/bin/sh".to_string()),
-                ("TERM".to_string(), "VT100".to_string()),
-            ])),
-        };
-        self.begin_time = SystemTime::now();
-        self.begin = true;
-        return Ok(());
+        let logged = self.logged.lock();
+        if let Err(_) = logged {
+            return Err(Box::<dyn Error>::from("Recorder not started."));
+        }
+        let mut logged = logged.unwrap();
+        logged.clear();
+
+        let time = SystemTime::now();
+        let begin_time = self.begin_time.lock();
+        if let Err(_) = begin_time {
+            return Err(Box::<dyn Error>::from("Recorder not started."));
+        }
+        let mut begin_time = begin_time.unwrap();
+        *begin_time = time;
+
+        let begin = self.begin.lock();
+        if let Err(_) = begin {
+            return Err(Box::<dyn Error>::from("Recorder not started."));
+        }
+        let mut begin = begin.unwrap();
+        *begin = true;
+        Ok(())
     }
 
     fn end(&mut self) -> Result<String, Box<dyn Error>> {
-        if !self.begin {
+        let begin = self.begin.lock();
+        if let Err(_) = begin {
             return Err(Box::<dyn Error>::from("Recorder not started."));
         }
-        self.begin = false;
-        let mut logged = String::new();
-        let head = to_string(&self.head).unwrap();
-        logged += &head;
-        logged += "\n";
-        for entry in &self.logged {
-            let line = to_string(entry).unwrap();
-            let line = line.replace("\\n", "\\r\\n"); // fix line ending
-            logged += &line;
-            logged += "\n";
+        let mut begin = begin.unwrap();
+        if !*begin {
+            return Err(Box::<dyn Error>::from("Recorder not started."));
         }
-        logged += "\n";
-        return Ok(logged);
+        *begin = false;
+        let mut res = String::new();
+        let logged = self.logged.lock();
+        if let Err(_) = logged {
+            return Err(Box::<dyn Error>::from("Recorder not started."));
+        }
+        let logged = logged.unwrap();
+        let head = to_string(&self.head).unwrap();
+        res += &head;
+        res += "\n";
+        for entry in logged.iter() {
+            let line = to_string(entry).unwrap();
+            let line = line.replace("\\n", "\\r\\n");
+            res += &line;
+            res += "\n";
+        }
+        res += "\n";
+        Ok(res)
     }
 
     fn exit(self) -> T {
-        self.inner
+        let mut inner = self.inner.lock().unwrap();
+        let inner = inner.take().unwrap();
+        inner
     }
 }
