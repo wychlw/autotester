@@ -1,8 +1,11 @@
-use std::{thread::sleep, time::{Duration, Instant}};
+use std::{
+    thread::sleep,
+    time::{Duration, Instant},
+};
 
 use crate::{logger::err, term::tty::Tty, util::rand_string};
 
-use super::cli_api::CliTestApi;
+use super::cli_api::{CliTestApi, SudoCliTestApi};
 
 pub struct CliTester<T>
 where
@@ -28,8 +31,8 @@ impl<T> CliTester<T>
 where
     T: Tty,
 {
-    fn run_command(&mut self, command: &[u8]) -> Result<(), Box<dyn std::error::Error>> {
-        let res = self.inner.write(&command);
+    fn run_command(&mut self, command: &String) -> Result<(), Box<dyn std::error::Error>> {
+        let res = self.inner.write(command.as_bytes());
         if let Err(e) = res {
             return Err(e);
         }
@@ -41,25 +44,22 @@ impl<T> CliTestApi for CliTester<T>
 where
     T: Tty,
 {
-    fn script_run(&mut self, script: &[u8]) -> Result<(), Box<dyn std::error::Error>> {
+    fn script_run(&mut self, script: &str) -> Result<(), Box<dyn std::error::Error>> {
         let mut cmd = script.to_owned();
-        cmd.push(b'\n');
+        cmd += "\n";
         self.run_command(&cmd)
     }
     fn assert_script_run(
         &mut self,
-        script: &[u8],
+        script: &str,
         timeout: u32,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let mut cmd = script.to_owned();
-        cmd.push(b';');
-        cmd.push(b' ');
-        let echo_content_rand = rand_string(8);
+        let echo_content_rand = String::from_utf8(rand_string(8)).unwrap();
 
-        cmd.extend_from_slice(b"echo ");
-        cmd.extend_from_slice(&echo_content_rand);
-        cmd.push(b';');
-        cmd.push(b'\n');
+        cmd += "; echo ";
+        cmd += &echo_content_rand;
+        cmd += " \n";
 
         let begin = Instant::now();
 
@@ -69,7 +69,6 @@ where
         }
 
         let mut buf = Vec::new();
-        let echo_content_rand = String::from_utf8(echo_content_rand).unwrap();
         loop {
             let res = self.inner.read();
             if let Err(e) = res {
@@ -92,14 +91,71 @@ where
         }
         Ok(())
     }
-    fn background_script_run(
-        &mut self,
-        script: &[u8],
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    fn background_script_run(&mut self, script: &str) -> Result<(), Box<dyn std::error::Error>> {
         let mut cmd = script.to_owned();
-        cmd.push(b' ');
-        cmd.push(b'&');
-        cmd.push(b'\n');
+        cmd += " &\n";
         self.run_command(&cmd)
+    }
+}
+
+pub struct SudoCliTester<T>
+where
+    T: Tty,
+{
+    inner: CliTester<T>,
+}
+
+impl<T> SudoCliTester<T>
+where
+    T: Tty,
+{
+    pub fn build(inner: T) -> SudoCliTester<T> {
+        SudoCliTester {
+            inner: CliTester::build(inner),
+        }
+    }
+
+    pub fn exit(self) -> T {
+        self.inner.exit()
+    }
+}
+
+impl<T> CliTestApi for SudoCliTester<T>
+where
+    T: Tty,
+{
+    fn script_run(&mut self, script: &str) -> Result<(), Box<dyn std::error::Error>> {
+        self.inner.script_run(script)
+    }
+    fn assert_script_run(
+        &mut self,
+        script: &str,
+        timeout: u32,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        self.inner.assert_script_run(script, timeout)
+    }
+    fn background_script_run(&mut self, script: &str) -> Result<(), Box<dyn std::error::Error>> {
+        self.inner.background_script_run(script)
+    }
+}
+
+impl<T> SudoCliTestApi for SudoCliTester<T>
+where
+    T: Tty,
+{
+    fn script_sudo(&mut self, script: &str) -> Result<(), Box<dyn std::error::Error>> {
+        let mut cmd = String::from("sudo ");
+        cmd += script;
+        cmd += "\n";
+        self.inner.script_run(&cmd)
+    }
+    fn assert_script_sudo(
+        &mut self,
+        script: &str,
+        timeout: u32,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let mut cmd = String::from("sudo ");
+        cmd += script;
+        self.inner.assert_script_run(&cmd, timeout)
     }
 }

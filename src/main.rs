@@ -1,7 +1,7 @@
 
 use std::fs;
 
-use tester::{exec::{cli_api::CliTestApi, cli_exec::CliTester}, term::{asciicast::Asciicast, recorder::Recorder, shell::Shell, tty::Tty}};
+use tester::{exec::{cli_api::{CliTestApi, SudoCliTestApi}, cli_exec::{CliTester, SudoCliTester}}, term::{asciicast::Asciicast, recorder::Recorder, shell::Shell, tty::Tty}};
 
 fn main() {
     let shell = Shell::build(Some("/bin/sh")).unwrap();
@@ -39,13 +39,17 @@ fn main() {
         }
     }
 
-    let mut exec = CliTester::build(shell);
+    let mut exec = SudoCliTester::build(shell);
 
-    let _ = exec.script_run(b"echo Hello, World!");
+    let _ = exec.script_run("echo Hello, World!");
 
-    let _ = exec.assert_script_run(b"echo \"Assert!\"", 2);
+    let _ = exec.assert_script_run("echo \"Assert!\"", 2);
 
-    let _ = exec.background_script_run(b"ls");
+    let _ = exec.background_script_run("ls");
+
+    let _ = exec.script_sudo("echo \"Sudo!\"");
+
+    let _ = exec.assert_script_sudo("echo \"Assert Sudo!\"", 2);
 
     let mut shell = exec.exit();
 
@@ -56,7 +60,7 @@ fn main() {
     let log = shell.end().unwrap();
     fs::write("test2.cast", log).expect("Failed to write to file");
 
-    let mut shell = shell.exit();
+    let shell = shell.exit();
     shell.stop();
 
 }

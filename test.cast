@@ -1,2 +1,0 @@
-{"version": 2, "width": 80, "height": 24, "timestamp": 1723455633, "env": { "SHELL": "/bin/bash", "TERM": "VT100" } }
-[ 1.305, "o", "\u001b[0;lw@lw-arch:~/Work/plct/tester\u007Hello, World!\n\u001b[0;lw@lw-arch:~/Work/plct/tester\u007Cargo.lock\nCargo.toml\nrec.cast\nsrc\ntarget\ntest.cast\n\u001b[0;lw@lw-arch:~/Work/plct/tester\u007After sleep\n\u001b[0;lw@lw-arch:~/Work/plct/tester\u007[lw@lw-arch tester]$ echo Hello, World!\n[lw@lw-arch tester]$ ls\n[lw@lw-arch tester]$ sleep 1; echo After sleep\n[lw@lw-arch tester]$ exit\nexit\n"]
