@@ -1,4 +1,7 @@
-use std::{error::Error, time::SystemTime};
+use std::{collections::HashMap, error::Error, time::SystemTime};
+
+use asciicast::{Entry, EventType, Header};
+use serde_json::to_string;
 
 use super::{recorder::Recorder, tty::Tty};
 
@@ -7,9 +10,10 @@ where
     T: Tty,
 {
     inner: T,
-    logged: Vec<u8>,
+    head: Header,
+    logged: Vec<Entry>,
     begin: bool,
-    begin_time: SystemTime
+    begin_time: SystemTime,
 }
 
 impl<T> Asciicast<T>
@@ -19,9 +23,24 @@ where
     pub fn build(inner: T) -> Asciicast<T> {
         Asciicast {
             inner,
+            head: Header {
+                version: 2,
+                width: 80,
+                height: 24,
+                timestamp: None,
+                duration: None,
+                idle_time_limit: None,
+                command: None,
+                title: None,
+                env: None,
+                // env: HashMap::from([
+                //     ("SHELL".to_string(), "/bin/sh".to_string()),
+                //     ("TERM".to_string(), "VT100".to_string()),
+                // ]),
+            },
             logged: Vec::new(),
             begin: false,
-            begin_time: SystemTime::now()
+            begin_time: SystemTime::now(),
         }
     }
 }
@@ -37,12 +56,15 @@ where
         }
         let data = data.unwrap();
 
-        if self.begin {
+        if self.begin && !data.is_empty() {
             let time = self.begin_time.elapsed().unwrap();
-            let timestamp = time.as_micros();
+            let timestamp = time.as_millis();
             let timestamp = timestamp as f64 / 1000.0;
-            let line = format!("{{\"timestamp\": {}, \"event\": \"o\", \"data\": \"{}\"}}\n", timestamp, String::from_utf8(data.clone()).unwrap());
-            self.logged.extend(line.as_bytes());
+            self.logged.push(Entry {
+                time: timestamp,
+                event_type: EventType::Output,
+                event_data: String::from_utf8(data.clone()).unwrap(),
+            });
         }
 
         return Ok(data);
@@ -54,17 +76,30 @@ where
         }
         let data = data.unwrap();
 
-        if self.begin {
+        if self.begin && !data.is_empty() {
             let time = self.begin_time.elapsed().unwrap();
-            let timestamp = time.as_micros();
+            let timestamp = time.as_millis();
             let timestamp = timestamp as f64 / 1000.0;
-            let line = format!("{{\"timestamp\": {}, \"event\": \"o\", \"data\": \"{}\"}}\n", timestamp, String::from_utf8(data.clone()).unwrap());
-            self.logged.extend(line.as_bytes());
+            self.logged.push(Entry {
+                time: timestamp,
+                event_type: EventType::Output,
+                event_data: String::from_utf8(data.clone()).unwrap(),
+            });
         }
 
         return Ok(data);
     }
     fn write(&mut self, data: &[u8]) -> Result<(), Box<dyn Error>> {
+        if self.begin {
+            let time = self.begin_time.elapsed().unwrap();
+            let timestamp = time.as_millis();
+            let timestamp = timestamp as f64 / 1000.0;
+            self.logged.push(Entry {
+                time: timestamp,
+                event_type: EventType::Input,
+                event_data: String::from_utf8(data.to_vec()).unwrap(),
+            });
+        }
         let res = self.inner.write(data);
 
         res
@@ -77,26 +112,41 @@ where
 {
     fn begin(&mut self) -> Result<(), Box<dyn Error>> {
         self.logged.clear();
-        
-        let time = SystemTime::now();
-        let timestamp = time.duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs();
-        let front_line = format!(
-            "{{\"version\": 2, \"width\": 80, \"height\": 24, \"timestamp\": {}, \"env\": {{ \"SHELL\": \"/bin/bash\", \"TERM\": \"VT100\" }} }}\n",
-            timestamp
-        );
-        self.logged.extend(front_line.as_bytes());
+        self.head = Header {
+            version: 2,
+            width: 80,
+            height: 24,
+            timestamp: None,
+            duration: None,
+            idle_time_limit: None,
+            command: None,
+            title: None,
+            env: Some(HashMap::from([
+                ("SHELL".to_string(), "/bin/sh".to_string()),
+                ("TERM".to_string(), "VT100".to_string()),
+            ])),
+        };
         self.begin_time = SystemTime::now();
         self.begin = true;
         return Ok(());
     }
 
-    fn end(&mut self) -> Result<Vec<u8>, Box<dyn Error>> {
+    fn end(&mut self) -> Result<String, Box<dyn Error>> {
         if !self.begin {
             return Err(Box::<dyn Error>::from("Recorder not started."));
         }
         self.begin = false;
-        let logged = self.logged.clone();
-        self.logged.clear();
+        let mut logged = String::new();
+        let head = to_string(&self.head).unwrap();
+        logged += &head;
+        logged += "\n";
+        for entry in &self.logged {
+            let line = to_string(entry).unwrap();
+            let line = line.replace("\\n", "\\r\\n"); // fix line ending
+            logged += &line;
+            logged += "\n";
+        }
+        logged += "\n";
         return Ok(logged);
     }
 

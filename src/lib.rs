@@ -8,3 +8,7 @@ pub mod term {
     pub mod tty;
     // pub mod pipereader;
 }
+pub mod exec {
+    pub mod cli_api;
+    pub mod cli_exec;
+}

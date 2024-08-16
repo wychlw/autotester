@@ -1,7 +1,7 @@
 use std::{
     error::Error,
     io::{BufReader, ErrorKind, Read, Write},
-    process::{Child, ChildStdin, Command, Stdio},
+    process::{ChildStdin, Command, Stdio},
     sync::{Arc, Mutex},
     thread::{spawn, JoinHandle},
 };
@@ -11,18 +11,20 @@ use crate::logger::{err, log};
 use super::tty::Tty;
 
 pub struct Shell {
-    inner: Child,
     stdin: ChildStdin,
     buff: Arc<Mutex<Vec<u8>>>,
     handle: Option<JoinHandle<()>>,
+    stop: Arc<Mutex<bool>>,
 }
 
 impl Shell {
     pub fn build(shell: Option<&str>) -> Result<Shell, Box<dyn Error>> {
         let shell = shell.unwrap_or("/bin/sh");
 
+        log(format!("Spawn shell process: {}", shell));
+
         let inner = Command::new("stdbuf")
-            .args(&["-oL", "-eL", shell, "-i"])
+            .args(&["-oL", "-eL", shell])
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
@@ -58,14 +60,22 @@ impl Shell {
         let mut reader = BufReader::new(stdout);
 
         let mut res = Shell {
-            inner,
             stdin,
             buff: Arc::new(Mutex::new(Vec::new())),
             handle: None,
+            stop: Arc::new(Mutex::new(false)),
         };
 
         let buff_clone = res.buff.clone();
+        let stop_clone = res.stop.clone();
         let handle = spawn(move || loop {
+            {
+                let stop = stop_clone.lock().unwrap();
+                if *stop {
+                    log("Stop shell process");
+                    break;
+                }
+            }
             let mut buf = [0u8];
             let sz = reader.read(&mut buf);
             if let Err(e) = sz {
@@ -82,6 +92,28 @@ impl Shell {
         res.handle = Some(handle);
 
         Ok(res)
+    }
+
+    fn __stop(&mut self) {
+        let stop = self.stop.lock();
+        if let Err(e) = stop {
+            err(format!("Failed to lock stop mutex. Reason: {}", e));
+            return;
+        }
+        let mut stop = stop.unwrap();
+        if *stop {
+            return;
+        }
+        *stop = true;
+        log("Try to stop shell process");
+        // if let Some(handle) = self.handle.take() {
+        //     handle.join().unwrap();
+        //     self.inner.wait().unwrap();
+        // } // workaround for stopping shell process
+    }
+
+    pub fn stop(mut self) {
+        self.__stop();
     }
 }
 
@@ -151,9 +183,6 @@ impl Tty for Shell {
 
 impl Drop for Shell {
     fn drop(&mut self) {
-        if let Some(handle) = self.handle.take() {
-            handle.join().unwrap();
-            self.inner.wait().unwrap();
-        }
+        self.__stop();
     }
 }

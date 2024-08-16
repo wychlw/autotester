@@ -7,7 +7,7 @@ where
     T: Tty,
 {
     fn begin(&mut self) -> Result<(), Box<dyn Error>>;
-    fn end(&mut self) -> Result<Vec<u8>, Box<dyn Error>>;
+    fn end(&mut self) -> Result<String, Box<dyn Error>>;
     fn exit(self) -> T;
 }
 
@@ -83,7 +83,7 @@ where
         return Ok(());
     }
 
-    fn end(&mut self) -> Result<Vec<u8>, Box<dyn Error>> {
+    fn end(&mut self) -> Result<String, Box<dyn Error>> {
         if !self.begin {
             return Err(Box::<dyn Error>::from("Not started"));
         }
@@ -93,7 +93,7 @@ where
         let logged = self.logged.clone();
         self.logged.clear();
 
-        return Ok(logged);
+        return Ok(String::from_utf8(logged).unwrap());
     }
 
     fn exit(self) -> T {
