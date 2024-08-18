@@ -25,7 +25,7 @@ impl Shell {
         log(format!("Spawn shell process: {}", shell));
 
         let inner = Command::new("stdbuf")
-            .args(&["-oL", "-eL", shell])
+            .args(&["-oL", "-eL", shell, "-i"])
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())

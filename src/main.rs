@@ -13,11 +13,10 @@ use tester::{
 };
 
 fn main() {
-    let shell = Shell::build(Some("/bin/sh")).unwrap();
+    let shell = Shell::build(Some("/bin/bash")).unwrap();
     let mut shell = SimpleRecorder::build(shell);
     let _ = shell.begin();
     let mut shell = Asciicast::build(shell);
-
     let _ = shell.begin();
 
     shell

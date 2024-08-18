@@ -218,6 +218,16 @@ where
         Ok(res)
     }
 
+    fn swap(&mut self, target: T) -> Result<T, Box<dyn Error>> {
+        let mut inner = self.inner.lock().unwrap();
+        if inner.is_none() {
+            return Err(Box::<dyn Error>::from("You've already exited."));
+        }
+        let res = inner.take().unwrap();
+        *inner = Some(target);
+        Ok(res)
+    }
+
     fn exit(self) -> T {
         let mut inner = self.inner.lock().unwrap();
         let inner = inner.take().unwrap();

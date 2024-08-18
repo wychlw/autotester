@@ -1,4 +1,4 @@
-use std::error::Error;
+use std::{error::Error, mem::replace};
 
 use crate::term::tty::Tty;
 
@@ -8,6 +8,11 @@ where
 {
     fn begin(&mut self) -> Result<(), Box<dyn Error>>;
     fn end(&mut self) -> Result<String, Box<dyn Error>>;
+
+    /**
+     * Swap the inner Tty object at runtime.
+     */
+    fn swap(&mut self, target: T) -> Result<T, Box<dyn Error>>;
     fn exit(self) -> T;
 }
 
@@ -95,7 +100,10 @@ where
 
         return Ok(String::from_utf8(logged).unwrap());
     }
-
+    fn swap(&mut self, target: T) -> Result<T, Box<dyn Error>> {
+        let inner = replace(&mut self.inner, target);
+        return Ok(inner);
+    }
     fn exit(self) -> T {
         return self.inner;
     }

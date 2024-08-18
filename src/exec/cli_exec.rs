@@ -98,6 +98,24 @@ where
     }
 }
 
+impl<T> Tty for CliTester<T>
+where
+    T: Tty,
+{
+    // Note: This will SKIP the logic in the tester
+    fn read(&mut self) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+        self.inner.read()
+    }
+    // Note: This will SKIP the logic in the tester
+    fn read_line(&mut self) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+        self.inner.read_line()
+    }
+    // Note: This will SKIP the logic in the tester
+    fn write(&mut self, data: &[u8]) -> Result<(), Box<dyn std::error::Error>> {
+        self.inner.write(data)
+    }
+}
+
 pub struct SudoCliTester<T>
 where
     T: Tty,
@@ -157,5 +175,23 @@ where
         let mut cmd = String::from("sudo ");
         cmd += script;
         self.inner.assert_script_run(&cmd, timeout)
+    }
+}
+
+impl<T> Tty for SudoCliTester<T>
+where
+    T: Tty,
+{
+    // Note: This will SKIP the logic in the tester
+    fn read(&mut self) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+        self.inner.read()
+    }
+    // Note: This will SKIP the logic in the tester
+    fn read_line(&mut self) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+        self.inner.read_line()
+    }
+    // Note: This will SKIP the logic in the tester
+    fn write(&mut self, data: &[u8]) -> Result<(), Box<dyn std::error::Error>> {
+        self.inner.write(data)
     }
 }
