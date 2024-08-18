@@ -14,4 +14,12 @@ pub mod term {
 pub mod exec {
     pub mod cli_api;
     pub mod cli_exec;
+    pub mod cli_exec_sudo;
+}
+pub mod devhost {
+    pub mod devhost;
+    pub mod sdwirec;
+}
+pub mod device {
+    pub mod device;
 }

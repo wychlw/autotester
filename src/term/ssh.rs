@@ -6,6 +6,7 @@ use crate::logger::err;
 
 use super::tty::Tty;
 
+#[derive(Clone)]
 pub enum SshPass {
     Password(String),
     Key(String), // Path to private key

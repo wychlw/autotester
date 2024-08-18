@@ -3,9 +3,9 @@ use std::{
     time::{Duration, Instant},
 };
 
-use crate::{consts::DURATION, logger::err, term::tty::Tty, util::rand_string};
+use crate::{consts::DURATION, logger::err, term::tty::{Tty, WrapperTty}, util::rand_string};
 
-use super::cli_api::{CliTestApi, SudoCliTestApi};
+use super::cli_api::{CliTestApi, ExecBase};
 
 pub struct CliTester<T>
 where
@@ -20,10 +20,6 @@ where
 {
     pub fn build(inner: T) -> CliTester<T> {
         CliTester { inner }
-    }
-
-    pub fn exit(self) -> T {
-        self.inner
     }
 }
 
@@ -40,7 +36,46 @@ where
     }
 }
 
-impl<T> CliTestApi for CliTester<T>
+impl<T> Tty for CliTester<T>
+where
+    T: Tty,
+{
+    // Note: This will SKIP the logic in the tester
+    fn read(&mut self) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+        self.inner.read()
+    }
+    // Note: This will SKIP the logic in the tester
+    fn read_line(&mut self) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+        self.inner.read_line()
+    }
+    // Note: This will SKIP the logic in the tester
+    fn write(&mut self, data: &[u8]) -> Result<(), Box<dyn std::error::Error>> {
+        self.inner.write(data)
+    }
+}
+
+impl<T> WrapperTty<T> for CliTester<T>
+where
+    T: Tty,
+{
+    fn exit(self) -> T {
+        self.inner
+    }
+}
+
+impl<T> ExecBase<T> for CliTester<T>
+where
+    T: Tty,
+{
+    fn inner_ref(&self) -> &T {
+        &self.inner
+    }
+    fn inner_mut(&mut self) -> &mut T {
+        &mut self.inner
+    }
+}
+
+impl<T> CliTestApi<T> for CliTester<T>
 where
     T: Tty,
 {
@@ -98,100 +133,3 @@ where
     }
 }
 
-impl<T> Tty for CliTester<T>
-where
-    T: Tty,
-{
-    // Note: This will SKIP the logic in the tester
-    fn read(&mut self) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
-        self.inner.read()
-    }
-    // Note: This will SKIP the logic in the tester
-    fn read_line(&mut self) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
-        self.inner.read_line()
-    }
-    // Note: This will SKIP the logic in the tester
-    fn write(&mut self, data: &[u8]) -> Result<(), Box<dyn std::error::Error>> {
-        self.inner.write(data)
-    }
-}
-
-pub struct SudoCliTester<T>
-where
-    T: Tty,
-{
-    inner: CliTester<T>,
-}
-
-impl<T> SudoCliTester<T>
-where
-    T: Tty,
-{
-    pub fn build(inner: T) -> SudoCliTester<T> {
-        SudoCliTester {
-            inner: CliTester::build(inner),
-        }
-    }
-
-    pub fn exit(self) -> T {
-        self.inner.exit()
-    }
-}
-
-impl<T> CliTestApi for SudoCliTester<T>
-where
-    T: Tty,
-{
-    fn script_run(&mut self, script: &str) -> Result<(), Box<dyn std::error::Error>> {
-        self.inner.script_run(script)
-    }
-    fn assert_script_run(
-        &mut self,
-        script: &str,
-        timeout: u32,
-    ) -> Result<(), Box<dyn std::error::Error>> {
-        self.inner.assert_script_run(script, timeout)
-    }
-    fn background_script_run(&mut self, script: &str) -> Result<(), Box<dyn std::error::Error>> {
-        self.inner.background_script_run(script)
-    }
-}
-
-impl<T> SudoCliTestApi for SudoCliTester<T>
-where
-    T: Tty,
-{
-    fn script_sudo(&mut self, script: &str) -> Result<(), Box<dyn std::error::Error>> {
-        let mut cmd = String::from("sudo ");
-        cmd += script;
-        cmd += "\n";
-        self.inner.script_run(&cmd)
-    }
-    fn assert_script_sudo(
-        &mut self,
-        script: &str,
-        timeout: u32,
-    ) -> Result<(), Box<dyn std::error::Error>> {
-        let mut cmd = String::from("sudo ");
-        cmd += script;
-        self.inner.assert_script_run(&cmd, timeout)
-    }
-}
-
-impl<T> Tty for SudoCliTester<T>
-where
-    T: Tty,
-{
-    // Note: This will SKIP the logic in the tester
-    fn read(&mut self) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
-        self.inner.read()
-    }
-    // Note: This will SKIP the logic in the tester
-    fn read_line(&mut self) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
-        self.inner.read_line()
-    }
-    // Note: This will SKIP the logic in the tester
-    fn write(&mut self, data: &[u8]) -> Result<(), Box<dyn std::error::Error>> {
-        self.inner.write(data)
-    }
-}

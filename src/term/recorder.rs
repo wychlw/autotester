@@ -2,7 +2,9 @@ use std::{error::Error, mem::replace};
 
 use crate::term::tty::Tty;
 
-pub trait Recorder<T>: Tty
+use super::tty::WrapperTty;
+
+pub trait Recorder<T>: WrapperTty<T>
 where
     T: Tty,
 {
@@ -13,7 +15,6 @@ where
      * Swap the inner Tty object at runtime.
      */
     fn swap(&mut self, target: T) -> Result<T, Box<dyn Error>>;
-    fn exit(self) -> T;
 }
 
 pub struct SimpleRecorder<T>
@@ -78,6 +79,15 @@ where
     }
 }
 
+impl<T> WrapperTty<T> for SimpleRecorder<T>
+where
+    T: Tty,
+{
+    fn exit(self) -> T {
+        self.inner
+    }
+}
+
 impl<T> Recorder<T> for SimpleRecorder<T>
 where
     T: Tty,
@@ -103,8 +113,5 @@ where
     fn swap(&mut self, target: T) -> Result<T, Box<dyn Error>> {
         let inner = replace(&mut self.inner, target);
         return Ok(inner);
-    }
-    fn exit(self) -> T {
-        return self.inner;
     }
 }

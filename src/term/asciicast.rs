@@ -9,9 +9,9 @@ use std::{
 use asciicast::{Entry, EventType, Header};
 use serde_json::to_string;
 
-use crate::consts::DURATION;
+use crate::consts::{DURATION, SHELL_PROMPT};
 
-use super::{recorder::Recorder, tty::Tty};
+use super::{recorder::Recorder, tty::{Tty, WrapperTty}};
 
 pub struct Asciicast<T>
 where
@@ -142,10 +142,14 @@ where
             let timestamp = time.as_millis();
             let timestamp = timestamp as f64 / 1000.0;
             let mut logged = self.logged.lock().unwrap();
+            let line = String::from_utf8(data.to_vec()).unwrap();
+            let line = SHELL_PROMPT.to_string() + &line;
+            let line = line.replace("\\n", "\\r\\n");
             logged.push(Entry {
                 time: timestamp,
-                event_type: EventType::Input,
-                event_data: String::from_utf8(data.to_vec()).unwrap(),
+                // event_type: EventType::Input,
+                event_type: EventType::Output,
+                event_data: line,
             });
         }
 
@@ -157,6 +161,17 @@ where
         let res = inner.write(data);
 
         res
+    }
+}
+
+impl<T> WrapperTty<T> for Asciicast<T>
+where
+    T: Tty,
+{
+    fn exit(self) -> T {
+        let mut inner = self.inner.lock().unwrap();
+        let inner = inner.take().unwrap();
+        inner
     }
 }
 
@@ -219,18 +234,14 @@ where
     }
 
     fn swap(&mut self, target: T) -> Result<T, Box<dyn Error>> {
+        sleep(Duration::from_micros(100));
         let mut inner = self.inner.lock().unwrap();
         if inner.is_none() {
             return Err(Box::<dyn Error>::from("You've already exited."));
         }
         let res = inner.take().unwrap();
         *inner = Some(target);
+        sleep(Duration::from_micros(100));
         Ok(res)
-    }
-
-    fn exit(self) -> T {
-        let mut inner = self.inner.lock().unwrap();
-        let inner = inner.take().unwrap();
-        inner
     }
 }
