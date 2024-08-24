@@ -1,7 +1,5 @@
 use std::{
-    any::Any,
-    thread::sleep,
-    time::{Duration, Instant},
+    any::Any, error::Error, thread::sleep, time::{Duration, Instant}
 };
 
 use crate::{
@@ -24,7 +22,7 @@ impl CliTester {
 }
 
 impl CliTester {
-    fn run_command(&mut self, command: &String) -> Result<(), Box<dyn std::error::Error>> {
+    fn run_command(&mut self, command: &String) -> Result<(), Box<dyn Error>> {
         let res = self.inner.write(command.as_bytes());
         if let Err(e) = res {
             return Err(e);
@@ -47,15 +45,15 @@ impl AnyBase for CliTester {
 
 impl Tty for CliTester {
     // Note: This will SKIP the logic in the tester
-    fn read(&mut self) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+    fn read(&mut self) -> Result<Vec<u8>, Box<dyn Error>> {
         self.inner.read()
     }
     // Note: This will SKIP the logic in the tester
-    fn read_line(&mut self) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+    fn read_line(&mut self) -> Result<Vec<u8>, Box<dyn Error>> {
         self.inner.read_line()
     }
     // Note: This will SKIP the logic in the tester
-    fn write(&mut self, data: &[u8]) -> Result<(), Box<dyn std::error::Error>> {
+    fn write(&mut self, data: &[u8]) -> Result<(), Box<dyn Error>> {
         self.inner.write(data)
     }
 }
@@ -76,21 +74,8 @@ impl ExecBase for CliTester {
 }
 
 impl CliTestApi for CliTester {
-    fn script_run(&mut self, script: &str, timeout: u32) -> Result<(), Box<dyn std::error::Error>> {
-        let mut cmd = script.to_owned();
-        let echo_content_rand = String::from_utf8(rand_string(8)).unwrap();
-
-        cmd += "; echo ";
-        cmd += &echo_content_rand;
-        cmd += " \n";
-
+    fn wait_serial(&mut self, expected: &str, timeout: u32) -> Result<(), Box<dyn Error>> {
         let begin = Instant::now();
-
-        let res = self.run_command(&cmd);
-        if let Err(e) = res {
-            return Err(e);
-        }
-
         let mut buf = Vec::new();
         loop {
             sleep(Duration::from_millis(DURATION));
@@ -101,24 +86,47 @@ impl CliTestApi for CliTester {
             let line = res.unwrap();
             buf.extend_from_slice(&line);
             let content = String::from_utf8(buf.clone()).unwrap();
-            if content.contains(&echo_content_rand) {
+            if content.contains(expected) {
                 break;
             }
             if begin.elapsed().as_secs() > timeout as u64 {
                 err(format!(
-                    "Script timeout! {}",
+                    "Timeout! Expected: {}, Actual: {}",
+                    expected,
                     String::from_utf8(buf.clone()).unwrap()
                 ));
-                return Ok(());
+                return Err(Box::<dyn Error>::from("Timeout"));
             }
         }
         Ok(())
+    }
+    fn script_run(&mut self, script: &str, timeout: u32) -> Result<(), Box<dyn Error>> {
+        let mut cmd = script.to_owned();
+        let echo_content_rand = String::from_utf8(rand_string(8)).unwrap();
+
+        cmd += "; echo ";
+        cmd += &echo_content_rand;
+        cmd += " \n";
+
+        let res = self.run_command(&cmd);
+        if let Err(e) = res {
+            return Err(e);
+        }
+
+        let res = self.wait_serial(&echo_content_rand, timeout);
+        if let Err(e) = res {
+            if e.to_string() == "Timeout" {
+                return Ok(());
+            }
+            return Err(e);
+        }
+        res
     }
     fn assert_script_run(
         &mut self,
         script: &str,
         timeout: u32,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    ) -> Result<(), Box<dyn Error>> {
         let mut cmd = script.to_owned();
         let echo_content_rand = String::from_utf8(rand_string(8)).unwrap();
 
@@ -126,42 +134,20 @@ impl CliTestApi for CliTester {
         cmd += &echo_content_rand;
         cmd += " \n";
 
-        let begin = Instant::now();
-
         let res = self.run_command(&cmd);
         if let Err(e) = res {
             return Err(e);
         }
 
-        let mut buf = Vec::new();
-        loop {
-            sleep(Duration::from_millis(DURATION));
-            let res = self.inner.read();
-            if let Err(e) = res {
-                return Err(e);
-            }
-            let line = res.unwrap();
-            buf.extend_from_slice(&line);
-            let content = String::from_utf8(buf.clone()).unwrap();
-            if content.contains(&echo_content_rand) {
-                break;
-            }
-            if begin.elapsed().as_secs() > timeout as u64 {
-                err(format!(
-                    "Script timeout! {}",
-                    String::from_utf8(buf.clone()).unwrap()
-                ));
-                return Err(Box::<dyn std::error::Error>::from("Timeout"));
-            }
-        }
-        Ok(())
+        let res = self.wait_serial(&echo_content_rand, timeout);
+        res
     }
-    fn background_script_run(&mut self, script: &str) -> Result<(), Box<dyn std::error::Error>> {
+    fn background_script_run(&mut self, script: &str) -> Result<(), Box<dyn Error>> {
         let mut cmd = script.to_owned();
         cmd += " &\n";
         self.run_command(&cmd)
     }
-    fn writeln(&mut self, script: &str) -> Result<(), Box<dyn std::error::Error>> {
+    fn writeln(&mut self, script: &str) -> Result<(), Box<dyn Error>> {
         let mut cmd = script.to_owned();
         cmd += "\n";
         self.run_command(&cmd)

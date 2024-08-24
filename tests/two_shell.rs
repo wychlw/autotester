@@ -3,7 +3,6 @@ use std::fs;
 use tester::{
     dyn_cast_mut, dyn_into,
     exec::{
-        self,
         cli_api::{CliTestApi, ExecBase, SudoCliTestApi},
         cli_exec_sudo::SudoCliTester,
     },

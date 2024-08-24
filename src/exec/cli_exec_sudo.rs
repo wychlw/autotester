@@ -64,6 +64,9 @@ impl ExecBase for SudoCliTester {
 }
 
 impl CliTestApi for SudoCliTester {
+    fn wait_serial(&mut self, expected: &str, timeout: u32) -> Result<(), Box<dyn std::error::Error>> {
+        self.inner.wait_serial(expected, timeout)
+    }
     fn script_run(&mut self, script: &str, timeout: u32) -> Result<(), Box<dyn std::error::Error>> {
         self.inner.script_run(script, timeout)
     }
