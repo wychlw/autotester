@@ -1,7 +1,9 @@
 use std::fs;
 
 use tester::{
+    dyn_cast_mut, dyn_into,
     exec::{
+        self,
         cli_api::{CliTestApi, ExecBase, SudoCliTestApi},
         cli_exec_sudo::SudoCliTester,
     },
@@ -34,11 +36,7 @@ fn two_shell() {
     exec.assert_script_run("echo \"Test Test\" > /tmp/test1/test.txt", 5)
         .unwrap();
 
-    let rec = exec
-        .inner_mut()
-        .as_any_mut()
-        .downcast_mut::<Asciicast>()
-        .unwrap();
+    let rec = dyn_cast_mut!(exec.inner_mut(), Asciicast).unwrap();
     let ts = rec.swap(Box::new(dut)).unwrap();
 
     exec.assert_script_run("sleep 1", 5).unwrap();
@@ -51,19 +49,19 @@ fn two_shell() {
     println!("Done");
 
     let rec = exec.exit();
-    let mut rec = rec.into_any().downcast::<Asciicast>().unwrap();
+    let mut rec = dyn_into!(rec, Asciicast).unwrap();
 
     let rec_log = rec.end().unwrap();
     let dut = rec.exit();
-    let mut dut = dut.into_any().downcast::<SimpleRecorder>().unwrap();
-    let mut ts = ts.into_any().downcast::<SimpleRecorder>().unwrap();
+    let mut dut = dyn_into!(dut, SimpleRecorder).unwrap();
+    let mut ts = dyn_into!(ts, SimpleRecorder).unwrap();
     let ts_log = ts.end().unwrap();
     let dut_log = dut.end().unwrap();
 
     let ts = ts.exit();
-    let ts = ts.into_any().downcast::<Shell>().unwrap();
+    let ts = dyn_into!(ts, Shell).unwrap();
     let dut = dut.exit();
-    let dut = dut.into_any().downcast::<Shell>().unwrap();
+    let dut = dyn_into!(dut, Shell).unwrap();
 
     fs::write("ts.log", ts_log).unwrap();
     fs::write("dut.log", dut_log).unwrap();

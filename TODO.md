@@ -5,10 +5,11 @@
 - [ ] 外设支持
     - [ ] 外设抽象 : mod devhost
     - [ ] 外设编写
+        - [ ] SdWireC
 
 - [ ] 设备抽象 : mod device
 
-- [ ] 更加的多态支持 : where T: Tty -> Box<dyn Tty>
+- [x] 更加的多态支持 : where T: Tty -> Box<dyn Tty>
 
 - [ ] 导出的 API
 

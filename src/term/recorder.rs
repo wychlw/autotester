@@ -2,7 +2,7 @@ use std::{any::Any, error::Error, mem::replace};
 
 use crate::{consts::SHELL_PROMPT, term::tty::Tty, util::anybase::AnyBase};
 
-use super::{serial::Serial, tty::{DynTty, WrapperTty}};
+use super::tty::{DynTty, WrapperTty};
 
 pub trait Recorder: WrapperTty {
     fn begin(&mut self) -> Result<(), Box<dyn Error>>;

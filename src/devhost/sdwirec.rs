@@ -1,5 +1,6 @@
 use std::{
     error::Error,
+    process::Output,
     sync::{Arc, Mutex},
 };
 
@@ -37,58 +38,123 @@ pub enum SdwirecChooser {
 }
 
 impl Sdwirec {
+    fn format_device(&self, chooser: &SdwirecChooser) -> String {
+        match chooser {
+            SdwirecChooser::Id(x) => {
+                format!("-v {} ", x)
+            }
+            SdwirecChooser::Serial(x) => {
+                format!("-e {} ", x)
+            }
+            SdwirecChooser::Vendor(x) => {
+                format!("-x {:#04x} ", x)
+            }
+            SdwirecChooser::Product(x) => {
+                format!("-a {:#04x} ", x)
+            }
+        }
+    }
+
+    fn try_run(&self, cmd: &str) -> Result<Output, Box<dyn std::error::Error>> {
+        let res = std::process::Command::new("sh").arg("-c").arg(cmd).output();
+        if let Err(e) = res {
+            return Err(Box::new(e));
+        }
+        let res = res.unwrap();
+        Ok(res)
+    }
+
     pub fn get_stat(
         &self,
         chooser: &SdwirecChooser,
     ) -> Result<SdwirecStat, Box<dyn std::error::Error>> {
-        match chooser {
-            SdwirecChooser::Id(x) => {
-                todo!();
-            }
-            SdwirecChooser::Serial(x) => {
-                todo!();
-            }
-            SdwirecChooser::Vendor(x) => {
-                todo!();
-            }
-            SdwirecChooser::Product(x) => {
-                todo!();
-            }
+        let mut cmd = String::from("sudo sd-mux-ctrl ");
+        cmd += &self.format_device(chooser);
+        cmd += "-u";
+
+        let res = self.try_run(&cmd);
+        if let Err(e) = res {
+            return Err(e);
+        }
+        let res = res.unwrap();
+        if !res.status.success() {
+            return Err(Box::new(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                format!(
+                    "Failed to get status of device. Reason: {}",
+                    String::from_utf8(res.stderr).unwrap()
+                ),
+            )));
+        }
+
+        /*
+         * Format:
+         *  "SD connected to: [TS|DUT]"
+         *  "Unable to open ftdi device: [Reason]"
+         */
+        let res = String::from_utf8(res.stdout).unwrap();
+        if res.contains("SD connected to: TS") {
+            return Ok(SdwirecStat::TS);
+        } else if res.contains("SD connected to: DUT") {
+            return Ok(SdwirecStat::DUT);
+        } else {
+            return Err(Box::new(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                format!("Failed to get status of device. Reason: {}", res),
+            )));
         }
     }
 
     pub fn to_ts(&self, chooser: &SdwirecChooser) -> Result<(), Box<dyn Error>> {
-        match chooser {
-            SdwirecChooser::Id(x) => {
-                todo!();
-            }
-            SdwirecChooser::Serial(x) => {
-                todo!();
-            }
-            SdwirecChooser::Vendor(x) => {
-                todo!();
-            }
-            SdwirecChooser::Product(x) => {
-                todo!();
-            }
+        if let SdwirecStat::TS = self.get_stat(chooser)? {
+            return Ok(());
         }
+
+        let mut cmd = String::from("sudo sd-mux-ctrl ");
+        cmd += &self.format_device(chooser);
+        cmd += "-ts";
+
+        let res = self.try_run(&cmd);
+        if let Err(e) = res {
+            return Err(e);
+        }
+        let res = res.unwrap();
+        if !res.status.success() {
+            return Err(Box::new(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                format!(
+                    "Failed to switch device to TS. Reason: {}",
+                    String::from_utf8(res.stderr).unwrap()
+                ),
+            )));
+        }
+        Ok(())
     }
 
     pub fn to_dut(&self, chooser: &SdwirecChooser) -> Result<(), Box<dyn Error>> {
-        match chooser {
-            SdwirecChooser::Id(x) => {
-                todo!();
-            }
-            SdwirecChooser::Serial(x) => {
-                todo!();
-            }
-            SdwirecChooser::Vendor(x) => {
-                todo!();
-            }
-            SdwirecChooser::Product(x) => {
-                todo!();
-            }
+        if let SdwirecStat::DUT = self.get_stat(chooser)? {
+            return Ok(());
         }
+
+        let mut cmd = String::from("sudo sd-mux-ctrl ");
+        cmd += &self.format_device(chooser);
+        cmd += "-d";
+
+        let res = self.try_run(&cmd);
+        if let Err(e) = res {
+            return Err(e);
+        }
+        let res = res.unwrap();
+        if !res.status.success() {
+            return Err(Box::new(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                format!(
+                    "Failed to switch device to DUT. Reason: {}",
+                    String::from_utf8(res.stderr).unwrap()
+                ),
+            )));
+        }
+        Ok(())
     }
 
     pub fn set_to(
