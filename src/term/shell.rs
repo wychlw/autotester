@@ -1,13 +1,8 @@
 use std::{
-    error::Error,
-    io::{BufReader, ErrorKind, Read, Write},
-    process::{ChildStdin, Command, Stdio},
-    sync::{Arc, Mutex},
-    thread::{sleep, spawn, JoinHandle},
-    time::Duration,
+    any::Any, error::Error, io::{BufReader, ErrorKind, Read, Write}, process::{ChildStdin, Command, Stdio}, sync::{Arc, Mutex}, thread::{sleep, spawn, JoinHandle}, time::Duration
 };
 
-use crate::{consts::SHELL_DURATION, logger::{err, log}};
+use crate::{consts::SHELL_DURATION, logger::{err, log}, util::anybase::AnyBase};
 
 use super::tty::Tty;
 
@@ -116,6 +111,18 @@ impl Shell {
 
     pub fn stop(mut self) {
         self.__stop();
+    }
+}
+
+impl AnyBase for Shell {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self
+    }
+    fn into_any(self: Box<Self>) -> Box<dyn Any> {
+        self
     }
 }
 

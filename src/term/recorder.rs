@@ -1,36 +1,29 @@
-use std::{error::Error, mem::replace};
+use std::{any::Any, error::Error, mem::replace};
 
-use crate::term::tty::Tty;
+use crate::{consts::SHELL_PROMPT, term::tty::Tty, util::anybase::AnyBase};
 
-use super::tty::WrapperTty;
+use super::{serial::Serial, tty::{DynTty, WrapperTty}};
 
-pub trait Recorder<T>: WrapperTty<T>
-where
-    T: Tty,
-{
+pub trait Recorder: WrapperTty {
     fn begin(&mut self) -> Result<(), Box<dyn Error>>;
     fn end(&mut self) -> Result<String, Box<dyn Error>>;
+    fn start(&mut self) -> Result<(), Box<dyn Error>>;
+    fn pause(&mut self) -> Result<(), Box<dyn Error>>;
 
     /**
      * Swap the inner Tty object at runtime.
      */
-    fn swap(&mut self, target: T) -> Result<T, Box<dyn Error>>;
+    fn swap(&mut self, target: DynTty) -> Result<DynTty, Box<dyn Error>>;
 }
 
-pub struct SimpleRecorder<T>
-where
-    T: Tty,
-{
-    inner: T,
+pub struct SimpleRecorder {
+    inner: DynTty,
     logged: Vec<u8>,
     begin: bool,
 }
 
-impl<T> SimpleRecorder<T>
-where
-    T: Tty,
-{
-    pub fn build(inner: T) -> SimpleRecorder<T> {
+impl SimpleRecorder {
+    pub fn build(inner: DynTty) -> SimpleRecorder {
         SimpleRecorder {
             inner,
             logged: Vec::new(),
@@ -39,10 +32,19 @@ where
     }
 }
 
-impl<T> Tty for SimpleRecorder<T>
-where
-    T: Tty,
-{
+impl AnyBase for SimpleRecorder {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self
+    }
+    fn into_any(self: Box<Self>) -> Box<dyn Any> {
+        self
+    }
+}
+
+impl Tty for SimpleRecorder {
     fn read(&mut self) -> Result<Vec<u8>, Box<dyn Error>> {
         let data = self.inner.read();
         if let Err(e) = data {
@@ -75,22 +77,24 @@ where
             return Err(e);
         }
 
+        if self.begin {
+            // For echo back:
+            let line = SHELL_PROMPT.as_bytes();
+            self.logged.extend(line);
+            self.logged.extend(data);
+        }
+
         return Ok(());
     }
 }
 
-impl<T> WrapperTty<T> for SimpleRecorder<T>
-where
-    T: Tty,
-{
-    fn exit(self) -> T {
+impl WrapperTty for SimpleRecorder {
+    fn exit(self) -> DynTty {
         self.inner
     }
 }
 
-impl<T> Recorder<T> for SimpleRecorder<T>
-where
-    T: Tty,
+impl Recorder for SimpleRecorder
 {
     fn begin(&mut self) -> Result<(), Box<dyn Error>> {
         self.logged.clear();
@@ -110,7 +114,15 @@ where
 
         return Ok(String::from_utf8(logged).unwrap());
     }
-    fn swap(&mut self, target: T) -> Result<T, Box<dyn Error>> {
+    fn pause(&mut self) -> Result<(), Box<dyn Error>> {
+        self.begin = false;
+        return Ok(());
+    }
+    fn start(&mut self) -> Result<(), Box<dyn Error>> {
+        self.begin = true;
+        return Ok(());
+    }
+    fn swap(&mut self, target: DynTty) -> Result<DynTty, Box<dyn Error>> {
         let inner = replace(&mut self.inner, target);
         return Ok(inner);
     }

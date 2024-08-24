@@ -1,6 +1,6 @@
 use std::error::Error;
 
-use crate::term::{serial::Serial, ssh::SshPass, tty::Tty};
+use crate::term::{serial::Serial, ssh::SshPass, tty::{DynTty, Tty}};
 
 
 struct ShellOptions {
@@ -37,7 +37,7 @@ pub trait DeviceAbst {
 
     // For this to work, seems we have to define a "must" toolset
     // for each device, or better, provide a way to define a toolset
-    fn connect(&mut self) -> Result<Box<dyn Tty>, Box<dyn Error>>;
+    fn connect(&mut self) -> Result<DynTty, Box<dyn Error>>;
 }
 
 pub struct Device<'a> {
@@ -61,7 +61,7 @@ impl<'a> DeviceAbst for Device<'a> {
     fn node_type(&self) -> &NodeType {
         &self.__node_type
     }
-    fn connect(&mut self) -> Result<Box<dyn Tty>, Box<dyn Error>> {
+    fn connect(&mut self) -> Result<DynTty, Box<dyn Error>> {
         todo!(); 
         
         // for here, we neet to do recursive call to connect to the device

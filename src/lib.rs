@@ -1,5 +1,4 @@
 pub mod logger;
-pub mod util;
 pub mod consts;
 pub mod term {
     pub mod tty;
@@ -22,4 +21,9 @@ pub mod devhost {
 }
 pub mod device {
     pub mod device;
+}
+
+pub mod util {
+    pub mod util;
+    pub mod anybase;
 }

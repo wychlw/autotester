@@ -1,3 +1,4 @@
+use std::any::Any;
 use std::error::Error;
 use std::io::ErrorKind;
 use std::thread::sleep;
@@ -8,6 +9,7 @@ use serialport::{self, SerialPort};
 use crate::consts::SHELL_DURATION;
 use crate::logger::err;
 use crate::term::tty::Tty;
+use crate::util::anybase::AnyBase;
 
 pub struct Serial {
     inner: Box<dyn SerialPort>,
@@ -25,6 +27,18 @@ impl Serial {
         return Ok(Serial {
             inner: inner.unwrap(),
         });
+    }
+}
+
+impl AnyBase for Serial {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self
+    }
+    fn into_any(self: Box<Self>) -> Box<dyn Any> {
+        self
     }
 }
 

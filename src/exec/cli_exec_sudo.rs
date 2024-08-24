@@ -1,29 +1,40 @@
-use crate::term::tty::{Tty, WrapperTty};
+use std::any::Any;
 
-use super::{cli_api::{CliTestApi, ExecBase, SudoCliTestApi}, cli_exec::CliTester};
+use crate::{
+    term::tty::{DynTty, Tty, WrapperTty},
+    util::anybase::AnyBase,
+};
 
-pub struct SudoCliTester<T>
-where
-    T: Tty,
-{
-    inner: CliTester<T>,
+use super::{
+    cli_api::{CliTestApi, ExecBase, SudoCliTestApi},
+    cli_exec::CliTester,
+};
+
+pub struct SudoCliTester {
+    inner: CliTester,
 }
 
-impl<T> SudoCliTester<T>
-where
-    T: Tty,
-{
-    pub fn build(inner: T) -> SudoCliTester<T> {
+impl SudoCliTester {
+    pub fn build(inner: DynTty) -> SudoCliTester {
         SudoCliTester {
             inner: CliTester::build(inner),
         }
     }
 }
 
-impl<T> Tty for SudoCliTester<T>
-where
-    T: Tty,
-{
+impl AnyBase for SudoCliTester {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self
+    }
+    fn into_any(self: Box<Self>) -> Box<dyn Any> {
+        self
+    }
+}
+
+impl Tty for SudoCliTester {
     // Note: This will SKIP the logic in the tester
     fn read(&mut self) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
         self.inner.read()
@@ -32,40 +43,29 @@ where
     fn read_line(&mut self) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
         self.inner.read_line()
     }
-    // Note: This will SKIP the logic in the tester
     fn write(&mut self, data: &[u8]) -> Result<(), Box<dyn std::error::Error>> {
         self.inner.write(data)
     }
 }
 
-
-impl<T> WrapperTty<T> for SudoCliTester<T>
-where
-    T: Tty,
-{
-    fn exit(self) -> T {
+impl WrapperTty for SudoCliTester {
+    fn exit(self) -> DynTty {
         self.inner.exit()
     }
 }
 
-impl<T> ExecBase<T> for SudoCliTester<T>
-where
-    T: Tty,
-{
-    fn inner_ref(&self) -> &T {
+impl ExecBase for SudoCliTester {
+    fn inner_ref(&self) -> &DynTty {
         self.inner.inner_ref()
     }
-    fn inner_mut(&mut self) -> &mut T {
+    fn inner_mut(&mut self) -> &mut DynTty {
         self.inner.inner_mut()
     }
 }
 
-impl<T> CliTestApi<T> for SudoCliTester<T>
-where
-    T: Tty,
-{
-    fn script_run(&mut self, script: &str) -> Result<(), Box<dyn std::error::Error>> {
-        self.inner.script_run(script)
+impl CliTestApi for SudoCliTester {
+    fn script_run(&mut self, script: &str, timeout: u32) -> Result<(), Box<dyn std::error::Error>> {
+        self.inner.script_run(script, timeout)
     }
     fn assert_script_run(
         &mut self,
@@ -77,17 +77,21 @@ where
     fn background_script_run(&mut self, script: &str) -> Result<(), Box<dyn std::error::Error>> {
         self.inner.background_script_run(script)
     }
+    fn writeln(&mut self, script: &str) -> Result<(), Box<dyn std::error::Error>> {
+        self.inner.writeln(script)
+    }
 }
 
-impl<T> SudoCliTestApi<T> for SudoCliTester<T>
-where
-    T: Tty,
-{
-    fn script_sudo(&mut self, script: &str) -> Result<(), Box<dyn std::error::Error>> {
+impl SudoCliTestApi for SudoCliTester {
+    fn script_sudo(
+        &mut self,
+        script: &str,
+        timeout: u32,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         let mut cmd = String::from("sudo ");
         cmd += script;
         cmd += "\n";
-        self.inner.script_run(&cmd)
+        self.inner.script_run(&cmd, timeout)
     }
     fn assert_script_sudo(
         &mut self,
@@ -99,4 +103,3 @@ where
         self.inner.assert_script_run(&cmd, timeout)
     }
 }
-

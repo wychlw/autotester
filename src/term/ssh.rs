@@ -1,8 +1,8 @@
-use std::{error::Error, io::Write, net::TcpStream, path::Path};
+use std::{any::Any, error::Error, io::Write, net::TcpStream, path::Path};
 
 use ssh2::{Channel, Session};
 
-use crate::logger::err;
+use crate::{logger::err, util::anybase::AnyBase};
 
 use super::tty::Tty;
 
@@ -69,6 +69,18 @@ impl Ssh {
                 err(format!("Failed to disconnect SSH session. Reason: {}", e));
             }
         }
+    }
+}
+
+impl AnyBase for Ssh {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self
+    }
+    fn into_any(self: Box<Self>) -> Box<dyn Any> {
+        self
     }
 }
 

@@ -1,23 +1,19 @@
 use std::{
-    collections::HashMap,
-    error::Error,
-    sync::{Arc, Mutex},
-    thread::{sleep, spawn, JoinHandle},
-    time::{Duration, SystemTime},
+    any::Any, collections::HashMap, error::Error, sync::{Arc, Mutex}, thread::{sleep, spawn, JoinHandle}, time::{Duration, SystemTime}
 };
 
 use asciicast::{Entry, EventType, Header};
 use serde_json::to_string;
 
-use crate::consts::{DURATION, SHELL_PROMPT};
+use crate::{consts::{DURATION, SHELL_PROMPT}, util::anybase::AnyBase};
 
-use super::{recorder::Recorder, tty::{Tty, WrapperTty}};
+use super::{
+    recorder::Recorder,
+    tty::{DynTty, Tty, WrapperTty},
+};
 
-pub struct Asciicast<T>
-where
-    T: Tty,
-{
-    inner: Arc<Mutex<Option<T>>>,
+pub struct Asciicast {
+    inner: Arc<Mutex<Option<DynTty>>>,
     head: Header,
     data: Arc<Mutex<Vec<u8>>>,
     logged: Arc<Mutex<Vec<Entry>>>,
@@ -26,14 +22,11 @@ where
     thread: Option<JoinHandle<()>>,
 }
 
-impl<T> Asciicast<T>
-where
-    T: Tty + Send + 'static,
-{
-    pub fn build(inner: T) -> Asciicast<T> {
+impl Asciicast {
+    pub fn build(inner: DynTty) -> Asciicast {
         let inner = Arc::new(Mutex::new(Some(inner)));
 
-        let mut res = Asciicast::<T> {
+        let mut res = Asciicast {
             inner: inner.clone(),
             head: Header {
                 version: 2,
@@ -99,10 +92,19 @@ where
     }
 }
 
-impl<T> Tty for Asciicast<T>
-where
-    T: Tty,
-{
+impl AnyBase for Asciicast {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self
+    }
+    fn into_any(self: Box<Self>) -> Box<dyn Any> {
+        self
+    }
+}
+
+impl Tty for Asciicast {
     fn read(&mut self) -> Result<Vec<u8>, Box<dyn Error>> {
         let data = self.data.lock();
         if let Err(_) = data {
@@ -164,20 +166,16 @@ where
     }
 }
 
-impl<T> WrapperTty<T> for Asciicast<T>
-where
-    T: Tty,
+impl WrapperTty for Asciicast
 {
-    fn exit(self) -> T {
+    fn exit(self) -> DynTty {
         let mut inner = self.inner.lock().unwrap();
         let inner = inner.take().unwrap();
         inner
     }
 }
 
-impl<T> Recorder<T> for Asciicast<T>
-where
-    T: Tty,
+impl Recorder for Asciicast
 {
     fn begin(&mut self) -> Result<(), Box<dyn Error>> {
         let logged = self.logged.lock();
@@ -233,7 +231,33 @@ where
         Ok(res)
     }
 
-    fn swap(&mut self, target: T) -> Result<T, Box<dyn Error>> {
+    fn start(&mut self) -> Result<(), Box<dyn Error>> {
+        let begin = self.begin.lock();
+        if let Err(e) = begin {
+            return Err(Box::<dyn Error>::from(format!(
+                "Recorder not started. Reason: {}",
+                e
+            )));
+        }
+        let mut begin = begin.unwrap();
+        *begin = true;
+        Ok(())
+    }
+
+    fn pause(&mut self) -> Result<(), Box<dyn Error>> {
+        let begin = self.begin.lock();
+        if let Err(e) = begin {
+            return Err(Box::<dyn Error>::from(format!(
+                "Recorder not started. Reason: {}",
+                e
+            )));
+        }
+        let mut begin = begin.unwrap();
+        *begin = false;
+        Ok(())
+    }
+
+    fn swap(&mut self, target: DynTty) -> Result<DynTty, Box<dyn Error>> {
         sleep(Duration::from_micros(100));
         let mut inner = self.inner.lock().unwrap();
         if inner.is_none() {
