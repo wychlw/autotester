@@ -1,11 +1,11 @@
 - [ ] 更多的连接方式
-    - [ ] 更完善的 SSH
+    - [x] 更完善的 SSH
     - [ ] 通过 tunnel 连接
 
 - [ ] 外设支持
     - [ ] 外设抽象 : mod devhost
     - [ ] 外设编写
-        - [ ] SdWireC
+        - [x] SdWireC
 
 - [ ] 设备抽象 : mod device
 

@@ -1,8 +1,18 @@
 use std::{
-    any::Any, error::Error, io::{BufReader, ErrorKind, Read, Write}, process::{ChildStdin, Command, Stdio}, sync::{Arc, Mutex}, thread::{sleep, spawn, JoinHandle}, time::Duration
+    any::Any,
+    error::Error,
+    io::{BufReader, ErrorKind, Read, Write},
+    process::{ChildStdin, Command, Stdio},
+    sync::{Arc, Mutex},
+    thread::{sleep, spawn, JoinHandle},
+    time::Duration,
 };
 
-use crate::{consts::SHELL_DURATION, logger::{err, log}, util::anybase::AnyBase};
+use crate::{
+    consts::SHELL_DURATION,
+    logger::{err, log},
+    util::anybase::AnyBase,
+};
 
 use super::tty::Tty;
 
@@ -136,19 +146,25 @@ impl Tty for Shell {
     }
     fn read_line(&mut self) -> Result<Vec<u8>, Box<dyn Error>> {
         let mut res = Vec::new();
-        let mut buff = self.buff.lock().unwrap();
-        let mut i = 0;
-        while i < buff.len() {
-            if buff[i] == 0x0A {
+        loop {
+            sleep(Duration::from_millis(SHELL_DURATION));
+            let mut buff = self.buff.lock().unwrap();
+            if buff.is_empty() {
+                continue;
+            }
+            let mut i = 0;
+            while i < buff.len() {
+                res.push(buff[i]);
+                i += 1;
+                if res.ends_with(&[0x0A]) {
+                    break;
+                }
+            }
+            buff.drain(0..i);
+            if res.ends_with(&[0x0A]) {
                 break;
             }
-            i += 1;
         }
-        if i == buff.len() {
-            return Ok(res);
-        }
-        res.extend_from_slice(&buff[0..i + 1]);
-        buff.drain(0..i + 1);
         return Ok(res);
     }
     fn write(&mut self, data: &[u8]) -> Result<(), Box<dyn Error>> {
