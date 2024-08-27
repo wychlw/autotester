@@ -12,5 +12,7 @@
 - [x] 更加的多态支持 : where T: Tty -> Box<dyn Tty>
 
 - [ ] 导出的 API
+    - [ ] 实现 cli-like 面向外界的哪一个巨型 wrapper
+        - [ ] 从 dyn Tty 中区分出这个巨型 wrapper，并分开实现（可以在每次开头前都试一试？）
 
 - [ ] 与下一步测试软件的进一步集成
