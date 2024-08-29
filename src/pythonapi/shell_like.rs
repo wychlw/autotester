@@ -3,13 +3,16 @@ use std::ptr::null_mut;
 use pyo3::{exceptions::PyTypeError, prelude::*};
 use serde::Deserialize;
 
-use crate::term::{
-    asciicast::Asciicast,
-    recorder::{Recorder, SimpleRecorder},
-    serial::Serial,
-    shell::Shell,
-    ssh::Ssh,
-    tty::{DynTty, WrapperTty},
+use crate::{
+    logger::log,
+    term::{
+        asciicast::Asciicast,
+        recorder::{Recorder, SimpleRecorder},
+        serial::Serial,
+        shell::Shell,
+        ssh::Ssh,
+        tty::{DynTty, WrapperTty},
+    },
 };
 
 type TtyType = DynTty;
@@ -54,7 +57,7 @@ impl PyTtyWrapper {
 unsafe impl Send for PyTtyWrapper {}
 
 #[pyclass]
-struct PyTty {
+pub struct PyTty {
     inner: PyTtyWrapper,
 }
 
@@ -168,7 +171,9 @@ impl PyTty {
     #[new]
     #[pyo3(signature = (conf, be_wrapped=None))]
     fn py_new(conf: &str, be_wrapped: Option<&mut PyTty>) -> PyResult<Self> {
-        let conf: PyTtyConf = serde_json::from_str(conf).unwrap();
+        log(format!("Got conf: {}", conf));
+
+        let conf: PyTtyConf = toml::from_str(conf).unwrap();
 
         let mut inner = None;
 

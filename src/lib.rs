@@ -1,16 +1,16 @@
 #![feature(box_into_inner)]
 
-pub mod logger;
 pub mod consts;
+pub mod logger;
 pub mod term {
     pub mod tty;
 
-    pub mod ssh;
     pub mod serial;
     pub mod shell;
+    pub mod ssh;
 
-    pub mod recorder;
     pub mod asciicast;
+    pub mod recorder;
 }
 pub mod exec {
     pub mod cli_api;
@@ -26,12 +26,21 @@ pub mod devhost {
 pub mod device {
     pub mod device;
 }
-
 pub mod util {
-    pub mod util;
     pub mod anybase;
+    pub mod util;
 }
-
 pub mod pythonapi {
     pub mod shell_like;
+
+    // pub mod testapi;
+}
+
+use pyo3::prelude::*;
+use pythonapi::shell_like::PyTty;
+
+#[pymodule]
+fn tester(m: &Bound<'_, PyModule>) -> PyResult<()> {
+    m.add_class::<PyTty>()?;
+    Ok(())
 }
