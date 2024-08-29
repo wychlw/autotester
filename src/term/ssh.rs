@@ -9,7 +9,7 @@ use std::{
     time::Duration,
 };
 
-use ssh2::{Channel, Session};
+use ssh2::Channel;
 
 use crate::{
     consts::SHELL_DURATION,

@@ -1,6 +1,8 @@
+#![allow(dead_code)]
+
 use std::error::Error;
 
-use crate::term::{serial::Serial, ssh::SshPass, tty::{DynTty, Tty}};
+use crate::term::{ssh::SshPass, tty::DynTty};
 
 
 struct ShellOptions {

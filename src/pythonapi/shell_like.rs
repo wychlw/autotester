@@ -1,24 +1,15 @@
-use std::{
-    any::TypeId,
-    ops::Deref,
-    ptr::{null, null_mut},
-};
+use std::ptr::null_mut;
 
 use pyo3::{exceptions::PyTypeError, prelude::*};
 use serde::Deserialize;
 
-use crate::{
-    dyn_into,
-    exec::cli_api::{CliTestApi, SudoCliTestApi},
-    term::{
-        asciicast::Asciicast,
-        recorder::{self, Recorder, SimpleRecorder},
-        serial::Serial,
-        shell::Shell,
-        ssh::Ssh,
-        tty::{DynTty, Tty, WrapperTty},
-    },
-    util::anybase::AnyBase,
+use crate::term::{
+    asciicast::Asciicast,
+    recorder::{Recorder, SimpleRecorder},
+    serial::Serial,
+    shell::Shell,
+    ssh::Ssh,
+    tty::{DynTty, WrapperTty},
 };
 
 type TtyType = DynTty;
@@ -368,6 +359,41 @@ impl PyTty {
     }
 
     fn swap(&mut self, other: &mut Self) -> PyResult<()> {
-        todo!()
+        let inner = self.inner.get_mut()?;
+        let inner = inner.as_any_mut();
+
+        if let Some(_) = inner.downcast_ref::<Shell>() {
+            Err(PyTypeError::new_err("Can't convert to the type you want"))
+        } else if let Some(_) = inner.downcast_ref::<Serial>() {
+            Err(PyTypeError::new_err("Can't convert to the type you want"))
+        } else if let Some(_) = inner.downcast_ref::<Ssh>() {
+            Err(PyTypeError::new_err("Can't convert to the type you want"))
+        } else if let Some(_) = inner.downcast_ref::<SimpleRecorder>() {
+            let inner = inner.downcast_mut::<SimpleRecorder>().unwrap();
+            let target = other.inner.safe_take()?;
+            let target = Box::into_inner(target);
+            let target = inner.swap(target);
+            if let Err(e) = target {
+                return Err(PyTypeError::new_err(e.to_string()));
+            }
+            let target = target.unwrap();
+            other.inner.tty = heap_raw(target);
+            Ok(())
+        } else if let Some(_) = inner.downcast_ref::<Asciicast>() {
+            let inner = inner.downcast_mut::<Asciicast>().unwrap();
+            let target = other.inner.safe_take()?;
+            let target = Box::into_inner(target);
+            let target = inner.swap(target);
+            if let Err(e) = target {
+                return Err(PyTypeError::new_err(e.to_string()));
+            }
+            let target = target.unwrap();
+            other.inner.tty = heap_raw(target);
+            Ok(())
+        } else {
+            Err(PyTypeError::new_err(
+                "What type is this? How do you get it?",
+            ))
+        }
     }
 }
