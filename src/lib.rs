@@ -1,3 +1,5 @@
+#![feature(box_into_inner)]
+
 pub mod logger;
 pub mod consts;
 pub mod term {
