@@ -12,13 +12,13 @@ use crate::{
         shell::Shell,
         ssh::Ssh,
         tty::{DynTty, WrapperTty},
-    },
+    }, util::anybase::heap_raw,
 };
 
-type TtyType = DynTty;
+pub type TtyType = DynTty;
 
-struct PyTtyWrapper {
-    tty: *mut TtyType,
+pub struct PyTtyWrapper {
+    pub tty: *mut TtyType,
 }
 
 impl PyTtyWrapper {
@@ -56,9 +56,17 @@ impl PyTtyWrapper {
 
 unsafe impl Send for PyTtyWrapper {}
 
-#[pyclass]
+#[pyclass(subclass)]
 pub struct PyTty {
     inner: PyTtyWrapper,
+}
+
+impl PyTty {
+    pub fn build(inner: PyTtyWrapper) -> Self {
+        PyTty {
+            inner
+        }
+    }
 }
 
 #[derive(Deserialize)]
@@ -75,10 +83,6 @@ struct PyTtyConf {
 #[derive(Deserialize)]
 struct PyTtyShellConf {
     shell: Option<String>,
-}
-
-fn heap_raw<T>(t: T) -> *mut T {
-    Box::into_raw(Box::new(t))
 }
 
 fn handel_wrap(inner: &mut Option<PyTtyWrapper>, be_wrapped: Option<&mut PyTty>) -> PyResult<()> {
@@ -402,3 +406,4 @@ impl PyTty {
         }
     }
 }
+

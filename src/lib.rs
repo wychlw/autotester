@@ -33,14 +33,17 @@ pub mod util {
 pub mod pythonapi {
     pub mod shell_like;
 
+    pub mod pyshell;
+
     // pub mod testapi;
 }
 
 use pyo3::prelude::*;
-use pythonapi::shell_like::PyTty;
+use pythonapi::{pyshell::PyShell, shell_like::PyTty};
 
 #[pymodule]
 fn tester(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyTty>()?;
+    m.add_class::<PyShell>()?;
     Ok(())
 }

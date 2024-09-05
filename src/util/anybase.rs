@@ -26,3 +26,7 @@ macro_rules! dyn_into {
         $x.into_any().downcast::<$t>()
     };
 }
+
+pub fn heap_raw<T>(t: T) -> *mut T {
+    Box::into_raw(Box::new(t))
+}
