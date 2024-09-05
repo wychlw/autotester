@@ -4,16 +4,17 @@ use pyo3::{exceptions::PyTypeError, prelude::*};
 use serde::Deserialize;
 
 use crate::{
-    logger::log,
-    term::{
+    exec::{cli_exec::CliTester, cli_exec_sudo::SudoCliTester}, logger::log, term::{
         asciicast::Asciicast,
         recorder::{Recorder, SimpleRecorder},
         serial::Serial,
         shell::Shell,
         ssh::Ssh,
         tty::{DynTty, WrapperTty},
-    }, util::anybase::heap_raw,
+    }, util::anybase::heap_raw
 };
+
+use super::{pyexec::handel_clitester, pyshell::handel_shell};
 
 pub type TtyType = DynTty;
 
@@ -58,7 +59,7 @@ unsafe impl Send for PyTtyWrapper {}
 
 #[pyclass(subclass)]
 pub struct PyTty {
-    inner: PyTtyWrapper,
+    pub inner: PyTtyWrapper,
 }
 
 impl PyTty {
@@ -78,6 +79,8 @@ struct PyTtyConf {
     // wrapable
     simple_recorder: Option<bool>,
     asciicast: Option<bool>,
+
+    exec: Option<PyTtyExecConf>,
 }
 
 #[derive(Deserialize)]
@@ -85,7 +88,12 @@ struct PyTtyShellConf {
     shell: Option<String>,
 }
 
-fn handel_wrap(inner: &mut Option<PyTtyWrapper>, be_wrapped: Option<&mut PyTty>) -> PyResult<()> {
+#[derive(Deserialize)]
+struct PyTtyExecConf {
+    sudo: Option<bool>,
+}
+
+pub fn handel_wrap(inner: &mut Option<PyTtyWrapper>, be_wrapped: Option<&mut PyTty>) -> PyResult<()> {
     if be_wrapped.is_none() {
         return Err(PyTypeError::new_err(
             "be_wrapped must be provided when wrap is true",
@@ -99,25 +107,7 @@ fn handel_wrap(inner: &mut Option<PyTtyWrapper>, be_wrapped: Option<&mut PyTty>)
     Ok(())
 }
 
-fn handel_shell(inner: &mut Option<PyTtyWrapper>, shell_conf: PyTtyShellConf) -> PyResult<()> {
-    let shell = shell_conf.shell.as_deref();
-    let shell = Shell::build(shell);
-    if let Err(e) = shell {
-        return Err(PyTypeError::new_err(e.to_string()));
-    }
-    let shell = shell.unwrap();
-    if inner.is_some() {
-        return Err(PyTypeError::new_err(
-            "Seems you defined more than one unwrappable object",
-        ));
-    }
-    let shell = Box::new(shell) as TtyType;
-    *inner = Some(PyTtyWrapper {
-        tty: heap_raw(shell),
-    });
-    Ok(())
-}
-fn handel_simple_recorder(inner: &mut Option<PyTtyWrapper>) -> PyResult<()> {
+pub fn handel_simple_recorder(inner: &mut Option<PyTtyWrapper>) -> PyResult<()> {
     if inner.is_none() {
         return Err(PyTypeError::new_err(
             "You must define at least one valid object",
@@ -139,7 +129,7 @@ fn handel_simple_recorder(inner: &mut Option<PyTtyWrapper>) -> PyResult<()> {
 
     Ok(())
 }
-fn handel_asciicast(inner: &mut Option<PyTtyWrapper>) -> PyResult<()> {
+pub fn handel_asciicast(inner: &mut Option<PyTtyWrapper>) -> PyResult<()> {
     if inner.is_none() {
         return Err(PyTypeError::new_err(
             "You must define at least one valid object",
@@ -185,13 +175,17 @@ impl PyTty {
             handel_wrap(&mut inner, be_wrapped)?;
         }
         if let Some(shell_conf) = conf.shell {
-            handel_shell(&mut inner, shell_conf)?;
+            handel_shell(&mut inner, shell_conf.shell.as_deref())?;
         }
         if conf.simple_recorder.is_some_and(|x| x) {
             handel_simple_recorder(&mut inner)?;
         }
         if conf.asciicast.is_some_and(|x| x) {
             handel_asciicast(&mut inner)?;
+        }
+        if conf.exec.is_some() {
+            let exec_conf = conf.exec.unwrap();
+            handel_clitester(&mut inner, exec_conf.sudo)?;
         }
 
         if inner.is_none() {
