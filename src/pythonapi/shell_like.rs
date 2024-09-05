@@ -4,7 +4,7 @@ use pyo3::{exceptions::PyTypeError, prelude::*};
 use serde::Deserialize;
 
 use crate::{
-    exec::{cli_exec::CliTester, cli_exec_sudo::SudoCliTester}, logger::log, term::{
+    logger::log, term::{
         asciicast::Asciicast,
         recorder::{Recorder, SimpleRecorder},
         serial::Serial,

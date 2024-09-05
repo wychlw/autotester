@@ -34,6 +34,7 @@ pub mod pythonapi {
     pub mod shell_like;
 
     pub mod pyshell;
+    pub mod pyexec;
 
     // pub mod testapi;
 }
