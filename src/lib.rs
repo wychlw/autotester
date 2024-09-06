@@ -43,6 +43,7 @@ use pyo3::prelude::*;
 use pythonapi::{pyshell::PyShell, shell_like::PyTty};
 
 #[pymodule]
+#[pyo3(name = "tester")]
 fn tester(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyTty>()?;
     m.add_class::<PyShell>()?;
