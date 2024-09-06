@@ -7,7 +7,7 @@ use std::time::Duration;
 use serialport::{self, SerialPort};
 
 use crate::consts::SHELL_DURATION;
-use crate::logger::err;
+use crate::err;
 use crate::term::tty::Tty;
 use crate::util::anybase::AnyBase;
 
@@ -20,7 +20,7 @@ impl Serial {
         let inner = serialport::new(port, baud).open();
 
         if let Err(e) = inner {
-            err(format!("Open serial port failed! Reason: {}", e));
+            err!("Open serial port failed! Reason: {}", e);
             return Err(Box::new(e));
         }
 
@@ -55,7 +55,7 @@ impl Tty for Serial {
                 }
                 Err(e) if e.kind() == ErrorKind::Interrupted => continue,
                 Err(e) => {
-                    err(format!("Read from serial port failed. Reason: {}", e));
+                    err!("Read from serial port failed. Reason: {}", e);
                     return Err(Box::new(e));
                 }
             }
@@ -76,7 +76,7 @@ impl Tty for Serial {
                 }
                 Err(e) if e.kind() == ErrorKind::Interrupted => continue,
                 Err(e) => {
-                    err(format!("Read line from serial port failed. Reason: {}", e));
+                    err!("Read line from serial port failed. Reason: {}", e);
                     return Err(Box::new(e));
                 }
             }
@@ -89,7 +89,7 @@ impl Tty for Serial {
                 Ok(_) => break,
                 Err(e) if e.kind() == ErrorKind::Interrupted => continue,
                 Err(e) => {
-                    err(format!("Write to serial port failed. Reason: {}", e));
+                    err!("Write to serial port failed. Reason: {}", e);
                     return Err(Box::new(e));
                 }
             }

@@ -1,10 +1,13 @@
 use std::{
-    any::Any, error::Error, thread::sleep, time::{Duration, Instant}
+    any::Any,
+    error::Error,
+    thread::sleep,
+    time::{Duration, Instant},
 };
 
 use crate::{
     consts::DURATION,
-    logger::err,
+    err,
     term::tty::{DynTty, Tty, WrapperTty},
     util::{anybase::AnyBase, util::rand_string},
 };
@@ -90,14 +93,15 @@ impl CliTestApi for CliTester {
                 break;
             }
             if begin.elapsed().as_secs() > timeout as u64 {
-                err(format!(
+                err!(
                     "Timeout! Expected: {}, Actual: {}",
                     expected,
                     String::from_utf8(buf.clone()).unwrap()
-                ));
+                );
                 return Err(Box::<dyn Error>::from("Timeout"));
             }
         }
+
         Ok(())
     }
     fn script_run(&mut self, script: &str, timeout: u32) -> Result<(), Box<dyn Error>> {
@@ -122,11 +126,7 @@ impl CliTestApi for CliTester {
         }
         res
     }
-    fn assert_script_run(
-        &mut self,
-        script: &str,
-        timeout: u32,
-    ) -> Result<(), Box<dyn Error>> {
+    fn assert_script_run(&mut self, script: &str, timeout: u32) -> Result<(), Box<dyn Error>> {
         let mut cmd = script.to_owned();
         let echo_content_rand = String::from_utf8(rand_string(8)).unwrap();
 

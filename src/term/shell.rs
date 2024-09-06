@@ -8,9 +8,8 @@ use std::{
     time::Duration,
 };
 
-use crate::{
+use crate::{log, err, 
     consts::SHELL_DURATION,
-    logger::{err, log},
     util::anybase::AnyBase,
 };
 
@@ -27,7 +26,7 @@ impl Shell {
     pub fn build(shell: Option<&str>) -> Result<Shell, Box<dyn Error>> {
         let shell = shell.unwrap_or("/bin/sh");
 
-        log(format!("Spawn shell process: {}", shell));
+        log!("Spawn shell process: {}", shell);
 
         let inner = Command::new("stdbuf")
             .args(&["-oL", "-eL", shell,])
@@ -36,28 +35,28 @@ impl Shell {
             .stderr(Stdio::piped())
             .spawn();
         if let Err(e) = inner {
-            err(format!("Failed to spawn shell process. Reason: {}", e));
+            err!("Failed to spawn shell process. Reason: {}", e);
             return Err(Box::new(e));
         }
         let mut inner = inner.unwrap();
 
         let stdin = inner.stdin.take();
         if let None = stdin {
-            err("Failed to get stdin of shell process.");
+            err!("Failed to get stdin of shell process.");
             return Err(Box::<dyn Error>::from(""));
         }
         let stdin = stdin.unwrap();
 
         let stdout = inner.stdout.take();
         if let None = stdout {
-            err("Failed to get stdout of shell process.");
+            err!("Failed to get stdout of shell process.");
             return Err(Box::<dyn Error>::from(""));
         }
         let stdout = stdout.unwrap();
 
         let stderr = inner.stderr.take();
         if let None = stderr {
-            err("Failed to get stderr of shell process.");
+            err!("Failed to get stderr of shell process.");
             return Err(Box::<dyn Error>::from(""));
         }
         let stderr = stderr.unwrap();
@@ -79,14 +78,14 @@ impl Shell {
             {
                 let stop = stop_clone.lock().unwrap();
                 if *stop {
-                    log("Stop shell process");
+                    log!("Stop shell process");
                     return;
                 }
             }
             let mut buf = [0u8];
             let sz = reader.read(&mut buf);
             if let Err(e) = sz {
-                err(format!("Read from shell process failed. Reason: {}", e));
+                err!("Read from shell process failed. Reason: {}", e);
                 break;
             }
             if buf[0] == 0x0 {
@@ -104,7 +103,7 @@ impl Shell {
     fn __stop(&mut self) {
         let stop = self.stop.lock();
         if let Err(e) = stop {
-            err(format!("Failed to lock stop mutex. Reason: {}", e));
+            err!("Failed to lock stop mutex. Reason: {}", e);
             return;
         }
         let mut stop = stop.unwrap();
@@ -112,7 +111,7 @@ impl Shell {
             return;
         }
         *stop = true;
-        log("Try to stop shell process");
+        log!("Try to stop shell process");
         // if let Some(handle) = self.handle.take() {
         //     handle.join().unwrap();
         //     self.inner.wait().unwrap();
@@ -174,14 +173,14 @@ impl Tty for Shell {
                 Ok(_) => break,
                 Err(e) if e.kind() == ErrorKind::Interrupted => continue,
                 Err(e) => {
-                    err(format!("Write to shell process failed. Reason: {}", e));
+                    err!("Write to shell process failed. Reason: {}", e);
                     return Err(Box::new(e));
                 }
             }
         }
         let res = self.stdin.flush();
         if let Err(e) = res {
-            err(format!("Flush to shell process failed. Reason: {}", e));
+            err!("Flush to shell process failed. Reason: {}", e);
             return Err(Box::<dyn Error>::from(e));
         }
         return Ok(());

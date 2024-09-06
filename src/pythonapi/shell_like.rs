@@ -4,14 +4,16 @@ use pyo3::{exceptions::PyTypeError, prelude::*};
 use serde::Deserialize;
 
 use crate::{
-    logger::log, term::{
+    log,
+    term::{
         asciicast::Asciicast,
         recorder::{Recorder, SimpleRecorder},
         serial::Serial,
         shell::Shell,
         ssh::Ssh,
         tty::{DynTty, WrapperTty},
-    }, util::anybase::heap_raw
+    },
+    util::anybase::heap_raw,
 };
 
 use super::{pyexec::handel_clitester, pyshell::handel_shell};
@@ -64,9 +66,7 @@ pub struct PyTty {
 
 impl PyTty {
     pub fn build(inner: PyTtyWrapper) -> Self {
-        PyTty {
-            inner
-        }
+        PyTty { inner }
     }
 }
 
@@ -93,7 +93,10 @@ struct PyTtyExecConf {
     sudo: Option<bool>,
 }
 
-pub fn handel_wrap(inner: &mut Option<PyTtyWrapper>, be_wrapped: Option<&mut PyTty>) -> PyResult<()> {
+pub fn handel_wrap(
+    inner: &mut Option<PyTtyWrapper>,
+    be_wrapped: Option<&mut PyTty>,
+) -> PyResult<()> {
     if be_wrapped.is_none() {
         return Err(PyTypeError::new_err(
             "be_wrapped must be provided when wrap is true",
@@ -165,7 +168,7 @@ impl PyTty {
     #[new]
     #[pyo3(signature = (conf, be_wrapped=None))]
     fn py_new(conf: &str, be_wrapped: Option<&mut PyTty>) -> PyResult<Self> {
-        log(format!("Got conf: {}", conf));
+        log!("Got conf: {}", conf);
 
         let conf: PyTtyConf = toml::from_str(conf).unwrap();
 
@@ -400,4 +403,3 @@ impl PyTty {
         }
     }
 }
-

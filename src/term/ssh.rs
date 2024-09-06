@@ -12,9 +12,7 @@ use std::{
 use ssh2::Channel;
 
 use crate::{
-    consts::SHELL_DURATION,
-    logger::{err, log},
-    util::anybase::AnyBase,
+    consts::SHELL_DURATION, err, log, util::anybase::AnyBase
 };
 
 use super::tty::Tty;
@@ -70,7 +68,7 @@ impl Ssh {
 
         let e = channel.shell();
         if let Err(e) = e {
-            err(format!("Failed to open SSH shell. Reason: {}", e));
+            err!("Failed to open SSH shell. Reason: {}", e);
         }
 
         let channel = Arc::new(Mutex::new(channel));
@@ -84,7 +82,7 @@ impl Ssh {
         let handle = spawn(move || loop {
             let stop = stop_clone.lock().unwrap();
             if *stop {
-                log("Stop SSH shell.");
+                log!("Stop SSH shell.");
                 break;
             }
 
@@ -92,7 +90,7 @@ impl Ssh {
             let mut buf = [0u8];
             let sz = channel.read(&mut buf);
             if let Err(e) = sz {
-                err(format!("Read from SSH channel failed. Reason: {}", e));
+                err!("Read from SSH channel failed. Reason: {}", e);
                 break;
             }
             if buf[0] == 0x0 {
@@ -114,7 +112,7 @@ impl Ssh {
     pub fn exit(self) {
         let stop = self.stop.lock();
         if let Err(e) = stop {
-            err(format!("Failed to lock stop mutex. Reason: {}", e));
+            err!("Failed to lock stop mutex. Reason: {}", e);
             return;
         }
         let mut stop = stop.unwrap();
@@ -122,7 +120,7 @@ impl Ssh {
             return;
         }
         *stop = true;
-        log("Try to stop SSH shell.");
+        log!("Try to stop SSH shell.");
         // if let Some(handle) = self.handle.take() {
         //     handle.join().unwrap();
         //     self.inner.wait().unwrap();
@@ -181,7 +179,7 @@ impl Tty for Ssh {
                 Ok(_) => break,
                 Err(e) if e.kind() == ErrorKind::Interrupted => continue,
                 Err(e) => {
-                    err(format!("Write to shell process failed. Reason: {}", e));
+                    err!("Write to shell process failed. Reason: {}", e);
                     return Err(Box::new(e));
                 }
             }
@@ -189,7 +187,7 @@ impl Tty for Ssh {
         let mut channel = self.channel.lock().unwrap();
         let res = channel.flush();
         if let Err(e) = res {
-            err(format!("Flush to shell process failed. Reason: {}", e));
+            err!("Flush to shell process failed. Reason: {}", e);
             return Err(Box::<dyn Error>::from(e));
         }
         return Ok(());

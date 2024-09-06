@@ -1,7 +1,6 @@
 #![feature(box_into_inner)]
 
 pub mod consts;
-pub mod logger;
 pub mod term {
     pub mod tty;
 
@@ -29,6 +28,8 @@ pub mod device {
 pub mod util {
     pub mod anybase;
     pub mod util;
+    pub mod singleton;
+    pub mod logger;
 }
 pub mod pythonapi {
     pub mod shell_like;
@@ -40,12 +41,13 @@ pub mod pythonapi {
 }
 
 use pyo3::prelude::*;
-use pythonapi::{pyshell::PyShell, shell_like::PyTty};
+use pythonapi::{pyexec::PyExec, pyshell::PyShell, shell_like::PyTty};
 
 #[pymodule]
 #[pyo3(name = "tester")]
 fn tester(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyTty>()?;
     m.add_class::<PyShell>()?;
+    m.add_class::<PyExec>()?;
     Ok(())
 }

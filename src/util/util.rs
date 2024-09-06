@@ -24,6 +24,3 @@ pub fn rand_string(len: usize) -> Vec<u8> {
     rnd
 }
 
-pub trait DynLevel {
-    
-}
