@@ -6,10 +6,7 @@ use std::{
 };
 
 use crate::{
-    consts::DURATION,
-    err,
-    term::tty::{DynTty, Tty, WrapperTty},
-    util::{anybase::AnyBase, util::rand_string},
+    consts::DURATION, err, log, term::tty::{DynTty, Tty, WrapperTty}, util::{anybase::AnyBase, util::rand_string}
 };
 
 use super::cli_api::{CliTestApi, ExecBase};
@@ -26,6 +23,7 @@ impl CliTester {
 
 impl CliTester {
     fn run_command(&mut self, command: &String) -> Result<(), Box<dyn Error>> {
+        log!("Write to shell: {}", command);
         let res = self.inner.write(command.as_bytes());
         if let Err(e) = res {
             return Err(e);

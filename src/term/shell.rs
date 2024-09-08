@@ -141,6 +141,9 @@ impl Tty for Shell {
         let mut buff = self.buff.lock().unwrap();
         res.extend(buff.iter());
         buff.clear();
+        if !res.is_empty() {
+            log!("Shell read: {:?}", String::from_utf8_lossy(&res));
+        }
         return Ok(res);
     }
     fn read_line(&mut self) -> Result<Vec<u8>, Box<dyn Error>> {
