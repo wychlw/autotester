@@ -10,6 +10,7 @@ pub mod term {
 
     pub mod asciicast;
     pub mod recorder;
+    pub mod tee;
 }
 pub mod exec {
     pub mod cli_api;
@@ -27,15 +28,16 @@ pub mod device {
 }
 pub mod util {
     pub mod anybase;
-    pub mod util;
-    pub mod singleton;
     pub mod logger;
+    pub mod singleton;
+    pub mod util;
 }
 pub mod pythonapi {
     pub mod shell_like;
 
-    pub mod pyshell;
     pub mod pyexec;
+    pub mod pyshell;
+    pub mod pytee;
 
     pub mod pyhook;
 
@@ -43,13 +45,21 @@ pub mod pythonapi {
 }
 
 use pyo3::prelude::*;
-use pythonapi::{pyexec::PyExec, pyhook::build_ttyhook, pyshell::PyShell, shell_like::PyTty, util::{get_log_level, set_log_level}};
+use pythonapi::{
+    pyexec::PyExec,
+    pyhook::build_ttyhook,
+    pyshell::PyShell,
+    pytee::PyTee,
+    shell_like::PyTty,
+    util::{get_log_level, set_log_level},
+};
 
 #[pymodule]
 #[pyo3(name = "tester")]
 fn tester(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyTty>()?;
     m.add_class::<PyShell>()?;
+    m.add_class::<PyTee>()?;
     m.add_class::<PyExec>()?;
     m.add_function(wrap_pyfunction!(build_ttyhook, m)?)?;
     m.add_function(wrap_pyfunction!(set_log_level, m)?)?;

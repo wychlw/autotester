@@ -4,16 +4,14 @@ use pyo3::{exceptions::PyTypeError, prelude::*};
 use serde::Deserialize;
 
 use crate::{
-    log,
-    term::{
+    log, pythonapi::pytee::handle_tee, term::{
         asciicast::Asciicast,
         recorder::{Recorder, SimpleRecorder},
         tty::{DynTty, WrapperTty},
-    },
-    util::anybase::heap_raw,
+    }, util::anybase::heap_raw
 };
 
-use super::{pyexec::handle_clitester, pyhook::PyTtyHook, pyshell::handle_shell};
+use super::{pyexec::handle_clitester, pyhook::PyTtyHook, pyshell::{handle_shell, PyTtyShellConf}, pytee::PyTeeConf};
 
 pub type TtyType = DynTty;
 
@@ -72,17 +70,13 @@ struct PyTtyConf {
     // unwrapable
     wrap: Option<bool>,
     shell: Option<PyTtyShellConf>,
+    tee: Option<PyTeeConf>,
 
     // wrapable
     simple_recorder: Option<bool>,
     asciicast: Option<bool>,
 
     exec: Option<PyTtyExecConf>,
-}
-
-#[derive(Deserialize)]
-struct PyTtyShellConf {
-    shell: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -114,11 +108,6 @@ pub fn handle_simple_recorder(inner: &mut Option<PyTtyWrapper>) -> PyResult<()> 
         ));
     }
     let mut be_wrapped = inner.take().unwrap();
-    if be_wrapped.tty.is_null() {
-        return Err(PyTypeError::new_err(
-            "You gave me it, you will never own it again.",
-        ));
-    }
     let tty = be_wrapped.safe_take()?;
     let tty = Box::into_inner(tty);
     let recorder = Box::new(SimpleRecorder::build(tty));
@@ -136,11 +125,6 @@ pub fn handle_asciicast(inner: &mut Option<PyTtyWrapper>) -> PyResult<()> {
         ));
     }
     let mut be_wrapped = inner.take().unwrap();
-    if be_wrapped.tty.is_null() {
-        return Err(PyTypeError::new_err(
-            "You gave me it, you will never own it again.",
-        ));
-    }
     let tty = be_wrapped.safe_take()?;
     let tty = Box::into_inner(tty);
     let recorder = Box::new(Asciicast::build(tty));
@@ -165,6 +149,13 @@ pub fn handle_asciicast(inner: &mut Option<PyTtyWrapper>) -> PyResult<()> {
 impl PyTty {
     #[new]
     #[pyo3(signature = (conf, be_wrapped=None))]
+    /**
+     * NOTICE!
+     * This API is only for supporting with t-autotest.
+     * In future every initlizer will be defined in 
+     * separate class, while new Tty-like object will
+     * not be added in this class.
+     */
     fn py_new(conf: &str, be_wrapped: Option<&mut PyTty>) -> PyResult<Self> {
         log!("Got conf: {}", conf);
 
@@ -176,7 +167,10 @@ impl PyTty {
             handle_wrap(&mut inner, be_wrapped)?;
         }
         if let Some(shell_conf) = conf.shell {
-            handle_shell(&mut inner, shell_conf.shell.as_deref())?;
+            handle_shell(&mut inner, shell_conf)?;
+        }
+        if let Some(tee_conf) = conf.tee {
+            handle_tee(&mut inner, tee_conf)?;
         }
         if conf.simple_recorder.is_some_and(|x| x) {
             handle_simple_recorder(&mut inner)?;

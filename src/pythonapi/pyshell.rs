@@ -1,11 +1,19 @@
 use pyo3::{exceptions::PyTypeError, pyclass, pymethods, PyResult};
+use serde::Deserialize;
 
 use crate::{term::shell::Shell, util::anybase::heap_raw};
 
 use super::shell_like::{PyTty, PyTtyWrapper, TtyType};
 
-pub fn handle_shell(inner: &mut Option<PyTtyWrapper>, shell_conf: Option<&str>) -> PyResult<()> {
-    let shell = Shell::build(shell_conf);
+#[derive(Deserialize)]
+pub struct PyTtyShellConf {
+    pub shell: Option<String>,
+}
+
+
+pub fn handle_shell(inner: &mut Option<PyTtyWrapper>, shell_conf: PyTtyShellConf) -> PyResult<()> {
+    let shell = shell_conf.shell.as_deref();
+    let shell = Shell::build(shell);
     if let Err(e) = shell {
         return Err(PyTypeError::new_err(e.to_string()));
     }
