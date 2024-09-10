@@ -8,15 +8,12 @@ use crate::{
     term::{
         asciicast::Asciicast,
         recorder::{Recorder, SimpleRecorder},
-        serial::Serial,
-        shell::Shell,
-        ssh::Ssh,
         tty::{DynTty, WrapperTty},
     },
     util::anybase::heap_raw,
 };
 
-use super::{pyexec::handel_clitester, pyshell::handel_shell};
+use super::{pyexec::handle_clitester, pyshell::handle_shell};
 
 pub type TtyType = DynTty;
 
@@ -93,7 +90,7 @@ struct PyTtyExecConf {
     sudo: Option<bool>,
 }
 
-pub fn handel_wrap(
+pub fn handle_wrap(
     inner: &mut Option<PyTtyWrapper>,
     be_wrapped: Option<&mut PyTty>,
 ) -> PyResult<()> {
@@ -110,7 +107,7 @@ pub fn handel_wrap(
     Ok(())
 }
 
-pub fn handel_simple_recorder(inner: &mut Option<PyTtyWrapper>) -> PyResult<()> {
+pub fn handle_simple_recorder(inner: &mut Option<PyTtyWrapper>) -> PyResult<()> {
     if inner.is_none() {
         return Err(PyTypeError::new_err(
             "You must define at least one valid object",
@@ -132,7 +129,7 @@ pub fn handel_simple_recorder(inner: &mut Option<PyTtyWrapper>) -> PyResult<()> 
 
     Ok(())
 }
-pub fn handel_asciicast(inner: &mut Option<PyTtyWrapper>) -> PyResult<()> {
+pub fn handle_asciicast(inner: &mut Option<PyTtyWrapper>) -> PyResult<()> {
     if inner.is_none() {
         return Err(PyTypeError::new_err(
             "You must define at least one valid object",
@@ -161,6 +158,7 @@ pub fn handel_asciicast(inner: &mut Option<PyTtyWrapper>) -> PyResult<()> {
  * Ssh
  * SimpleRecorder
  * Asciicast
+ * PyTtyHook
  */
 
 #[pymethods]
@@ -175,20 +173,20 @@ impl PyTty {
         let mut inner = None;
 
         if conf.wrap.is_some_and(|x| x) {
-            handel_wrap(&mut inner, be_wrapped)?;
+            handle_wrap(&mut inner, be_wrapped)?;
         }
         if let Some(shell_conf) = conf.shell {
-            handel_shell(&mut inner, shell_conf.shell.as_deref())?;
+            handle_shell(&mut inner, shell_conf.shell.as_deref())?;
         }
         if conf.simple_recorder.is_some_and(|x| x) {
-            handel_simple_recorder(&mut inner)?;
+            handle_simple_recorder(&mut inner)?;
         }
         if conf.asciicast.is_some_and(|x| x) {
-            handel_asciicast(&mut inner)?;
+            handle_asciicast(&mut inner)?;
         }
         if conf.exec.is_some() {
             let exec_conf = conf.exec.unwrap();
-            handel_clitester(&mut inner, exec_conf.sudo)?;
+            handle_clitester(&mut inner, exec_conf.sudo)?;
         }
 
         if inner.is_none() {
@@ -229,13 +227,7 @@ impl PyTty {
         let inner = Box::into_inner(inner);
         let inner = inner.into_any();
 
-        if let Some(_) = inner.downcast_ref::<Shell>() {
-            Err(PyTypeError::new_err("Can't convert to the type you want"))
-        } else if let Some(_) = inner.downcast_ref::<Serial>() {
-            Err(PyTypeError::new_err("Can't convert to the type you want"))
-        } else if let Some(_) = inner.downcast_ref::<Ssh>() {
-            Err(PyTypeError::new_err("Can't convert to the type you want"))
-        } else if let Some(_) = inner.downcast_ref::<SimpleRecorder>() {
+        if let Some(_) = inner.downcast_ref::<SimpleRecorder>() {
             let inner = inner.downcast::<SimpleRecorder>().unwrap();
             let inner = inner.exit();
             Ok(PyTty {
@@ -252,9 +244,7 @@ impl PyTty {
                 },
             })
         } else {
-            Err(PyTypeError::new_err(
-                "What type is this? How do you get it?",
-            ))
+            Err(PyTypeError::new_err("This type doesn't have function exit"))
         }
     }
 
@@ -264,13 +254,7 @@ impl PyTty {
         let inner = self.inner.get_mut()?;
         let inner = inner.as_any_mut();
 
-        if let Some(_) = inner.downcast_ref::<Shell>() {
-            Err(PyTypeError::new_err("Can't convert to the type you want"))
-        } else if let Some(_) = inner.downcast_ref::<Serial>() {
-            Err(PyTypeError::new_err("Can't convert to the type you want"))
-        } else if let Some(_) = inner.downcast_ref::<Ssh>() {
-            Err(PyTypeError::new_err("Can't convert to the type you want"))
-        } else if let Some(_) = inner.downcast_ref::<SimpleRecorder>() {
+        if let Some(_) = inner.downcast_ref::<SimpleRecorder>() {
             let inner = inner.downcast_mut::<SimpleRecorder>().unwrap();
             inner
                 .begin()
@@ -282,7 +266,7 @@ impl PyTty {
                 .map_err(|e| PyTypeError::new_err(e.to_string()))
         } else {
             Err(PyTypeError::new_err(
-                "What type is this? How do you get it?",
+                "This type doesn't have function begin",
             ))
         }
     }
@@ -291,22 +275,14 @@ impl PyTty {
         let inner = self.inner.get_mut()?;
         let inner = inner.as_any_mut();
 
-        if let Some(_) = inner.downcast_ref::<Shell>() {
-            Err(PyTypeError::new_err("Can't convert to the type you want"))
-        } else if let Some(_) = inner.downcast_ref::<Serial>() {
-            Err(PyTypeError::new_err("Can't convert to the type you want"))
-        } else if let Some(_) = inner.downcast_ref::<Ssh>() {
-            Err(PyTypeError::new_err("Can't convert to the type you want"))
-        } else if let Some(_) = inner.downcast_ref::<SimpleRecorder>() {
+        if let Some(_) = inner.downcast_ref::<SimpleRecorder>() {
             let inner = inner.downcast_mut::<SimpleRecorder>().unwrap();
             inner.end().map_err(|e| PyTypeError::new_err(e.to_string()))
         } else if let Some(_) = inner.downcast_ref::<Asciicast>() {
             let inner = inner.downcast_mut::<Asciicast>().unwrap();
             inner.end().map_err(|e| PyTypeError::new_err(e.to_string()))
         } else {
-            Err(PyTypeError::new_err(
-                "What type is this? How do you get it?",
-            ))
+            Err(PyTypeError::new_err("This type doesn't have function end"))
         }
     }
 
@@ -314,13 +290,7 @@ impl PyTty {
         let inner = self.inner.get_mut()?;
         let inner = inner.as_any_mut();
 
-        if let Some(_) = inner.downcast_ref::<Shell>() {
-            Err(PyTypeError::new_err("Can't convert to the type you want"))
-        } else if let Some(_) = inner.downcast_ref::<Serial>() {
-            Err(PyTypeError::new_err("Can't convert to the type you want"))
-        } else if let Some(_) = inner.downcast_ref::<Ssh>() {
-            Err(PyTypeError::new_err("Can't convert to the type you want"))
-        } else if let Some(_) = inner.downcast_ref::<SimpleRecorder>() {
+        if let Some(_) = inner.downcast_ref::<SimpleRecorder>() {
             let inner = inner.downcast_mut::<SimpleRecorder>().unwrap();
             inner
                 .start()
@@ -332,7 +302,7 @@ impl PyTty {
                 .map_err(|e| PyTypeError::new_err(e.to_string()))
         } else {
             Err(PyTypeError::new_err(
-                "What type is this? How do you get it?",
+                "This type doesn't have function start",
             ))
         }
     }
@@ -341,13 +311,7 @@ impl PyTty {
         let inner = self.inner.get_mut()?;
         let inner = inner.as_any_mut();
 
-        if let Some(_) = inner.downcast_ref::<Shell>() {
-            Err(PyTypeError::new_err("Can't convert to the type you want"))
-        } else if let Some(_) = inner.downcast_ref::<Serial>() {
-            Err(PyTypeError::new_err("Can't convert to the type you want"))
-        } else if let Some(_) = inner.downcast_ref::<Ssh>() {
-            Err(PyTypeError::new_err("Can't convert to the type you want"))
-        } else if let Some(_) = inner.downcast_ref::<SimpleRecorder>() {
+        if let Some(_) = inner.downcast_ref::<SimpleRecorder>() {
             let inner = inner.downcast_mut::<SimpleRecorder>().unwrap();
             inner
                 .pause()
@@ -359,7 +323,7 @@ impl PyTty {
                 .map_err(|e| PyTypeError::new_err(e.to_string()))
         } else {
             Err(PyTypeError::new_err(
-                "What type is this? How do you get it?",
+                "This type doesn't have function pause",
             ))
         }
     }
@@ -368,13 +332,7 @@ impl PyTty {
         let inner = self.inner.get_mut()?;
         let inner = inner.as_any_mut();
 
-        if let Some(_) = inner.downcast_ref::<Shell>() {
-            Err(PyTypeError::new_err("Can't convert to the type you want"))
-        } else if let Some(_) = inner.downcast_ref::<Serial>() {
-            Err(PyTypeError::new_err("Can't convert to the type you want"))
-        } else if let Some(_) = inner.downcast_ref::<Ssh>() {
-            Err(PyTypeError::new_err("Can't convert to the type you want"))
-        } else if let Some(_) = inner.downcast_ref::<SimpleRecorder>() {
+        if let Some(_) = inner.downcast_ref::<SimpleRecorder>() {
             let inner = inner.downcast_mut::<SimpleRecorder>().unwrap();
             let target = other.inner.safe_take()?;
             let target = Box::into_inner(target);
@@ -397,9 +355,7 @@ impl PyTty {
             other.inner.tty = heap_raw(target);
             Ok(())
         } else {
-            Err(PyTypeError::new_err(
-                "What type is this? How do you get it?",
-            ))
+            Err(PyTypeError::new_err("This type doesn't have function swap"))
         }
     }
 }

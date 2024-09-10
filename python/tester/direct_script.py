@@ -1,7 +1,7 @@
-from .hook import HookGlobals
+from .hook import GlobalCallHook
 from . import tester
 
-class DirectScript(HookGlobals):
+class DirectScript(GlobalCallHook):
     def hook_func(func, *args, **kwargs):
         if globals().get(func) is not None:
             return globals()[func](*args, **kwargs)

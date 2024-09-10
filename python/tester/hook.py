@@ -1,8 +1,14 @@
 from typing import Generator, Tuple
 from bytecode import *
 import inspect
+import ctypes
 
 """
+这里采用 hook function call 的方式来实现对获取 global var 的 hook。
+这种方式的好处在于，它不会污染什么东西（除了往全局变量里添加几个 var 以外）。
+
+---
+
 对于这里我们想要 hook 的东西，其大概会长成这个样子：
 ```python
 def func():
@@ -28,7 +34,7 @@ def hook_func('name', *args, **kwargs):
 注意需要考虑多个 ARGS 和 KWARGS 的问题...
 """
 
-class HookGlobals:
+class GlobalCallHook:
     def find_paired_load_global(self, code: Bytecode, call_pos: int) -> int:
         instr = code[call_pos]
         arg_count = instr.arg
@@ -89,7 +95,7 @@ class HookGlobals:
             frame[0].f_globals[name] = attr
     
     def __init__(self, func):
-        self.set_global("__hook_func__", HookGlobals.hook_call)
+        self.set_global("__hook_func__", GlobalCallHook.hook_call)
         if not hasattr(func, 'hooked__'):
             self.replace_global_call(func)
             func.__hooked__ = True

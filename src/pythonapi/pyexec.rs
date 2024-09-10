@@ -9,9 +9,9 @@ use crate::{
     util::anybase::heap_raw,
 };
 
-use super::shell_like::{handel_wrap, PyTty, PyTtyWrapper, TtyType};
+use super::shell_like::{handle_wrap, PyTty, PyTtyWrapper, TtyType};
 
-pub fn handel_clitester(inner: &mut Option<PyTtyWrapper>, need_sudo: Option<bool>) -> PyResult<()> {
+pub fn handle_clitester(inner: &mut Option<PyTtyWrapper>, need_sudo: Option<bool>) -> PyResult<()> {
     if inner.is_none() {
         return Err(PyTypeError::new_err(
             "You must define at least one valid object",
@@ -47,8 +47,8 @@ impl PyExec {
     fn py_new(be_wrapped: &mut PyTty, sudo: Option<bool>) -> PyResult<(Self, PyTty)> {
         let mut inner = None;
 
-        handel_wrap(&mut inner, Some(be_wrapped))?;
-        handel_clitester(&mut inner, sudo)?;
+        handle_wrap(&mut inner, Some(be_wrapped))?;
+        handle_clitester(&mut inner, sudo)?;
 
         Ok((PyExec {}, PyTty::build(inner.unwrap())))
     }
