@@ -37,11 +37,13 @@ pub mod pythonapi {
     pub mod pyshell;
     pub mod pyexec;
 
+    pub mod pyhook;
+
     // pub mod testapi;
 }
 
 use pyo3::prelude::*;
-use pythonapi::{pyexec::PyExec, pyshell::PyShell, shell_like::PyTty};
+use pythonapi::{pyexec::PyExec, pyhook::build_ttyhook, pyshell::PyShell, shell_like::PyTty};
 
 #[pymodule]
 #[pyo3(name = "tester")]
@@ -49,5 +51,6 @@ fn tester(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyTty>()?;
     m.add_class::<PyShell>()?;
     m.add_class::<PyExec>()?;
+    m.add_function(wrap_pyfunction!(build_ttyhook, m)?)?;
     Ok(())
 }

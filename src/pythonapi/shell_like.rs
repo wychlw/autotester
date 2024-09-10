@@ -13,7 +13,7 @@ use crate::{
     util::anybase::heap_raw,
 };
 
-use super::{pyexec::handle_clitester, pyshell::handle_shell};
+use super::{pyexec::handle_clitester, pyhook::PyTtyHook, pyshell::handle_shell};
 
 pub type TtyType = DynTty;
 
@@ -356,6 +356,21 @@ impl PyTty {
             Ok(())
         } else {
             Err(PyTypeError::new_err("This type doesn't have function swap"))
+        }
+    }
+
+    // special for py tty hook to unhook
+    fn unhook(&mut self) -> PyResult<Py<PyAny>> {
+        let inner = self.inner.safe_take()?;
+        let inner = Box::into_inner(inner);
+        let inner = inner.into_any();
+
+        if let Some(_) = inner.downcast_ref::<PyTtyHook>() {
+            let inner = inner.downcast::<PyTtyHook>().unwrap();
+            let res = inner.inner;
+            Ok(res)
+        } else {
+            Err(PyTypeError::new_err("You can only unhook Hook"))
         }
     }
 }

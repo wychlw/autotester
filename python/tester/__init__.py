@@ -6,3 +6,4 @@ if hasattr(tester, "__all__"):
 
 from .hook import GlobalCallHook
 from .direct_script import DirectScript
+from .tty_abst import TtyAbst
