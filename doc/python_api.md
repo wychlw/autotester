@@ -70,7 +70,7 @@ __init__(be_wrapped: PtTty, sudo: bool = None)
 
 实现以下 trait 导出：
 ```rust
-pub trait CliTestApi: ExecBase {
+pub trait CliTestApi: InnerTty {
     fn script_run(&mut self, script: &str, timeout: u32) -> Result<(), Box<dyn Error>>;
     fn assert_script_run(&mut self, script: &str, timeout: u32) -> Result<(), Box<dyn Error>>;
     fn background_script_run(&mut self, script: &str) -> Result<(), Box<dyn Error>>;
@@ -84,3 +84,6 @@ pub trait SudoCliTestApi: CliTestApi {
 }
 ```
 
+## PyTee
+
+todo!()

@@ -6,10 +6,10 @@ use std::{
 };
 
 use crate::{
-    consts::DURATION, err, log, term::tty::{DynTty, Tty, WrapperTty}, util::{anybase::AnyBase, util::rand_string}
+    consts::DURATION, err, log, term::tty::{DynTty, InnerTty, Tty, WrapperTty}, util::{anybase::AnyBase, util::rand_string}
 };
 
-use super::cli_api::{CliTestApi, ExecBase};
+use super::cli_api::CliTestApi;
 
 pub struct CliTester {
     inner: DynTty,
@@ -65,7 +65,7 @@ impl WrapperTty for CliTester {
     }
 }
 
-impl ExecBase for CliTester {
+impl InnerTty for CliTester {
     fn inner_ref(&self) -> &DynTty {
         &self.inner
     }

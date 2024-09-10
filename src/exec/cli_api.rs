@@ -1,13 +1,8 @@
 use std::error::Error;
 
-use crate::term::tty::{DynTty, WrapperTty};
+use crate::term::tty::InnerTty;
 
-pub trait ExecBase: WrapperTty {
-    fn inner_ref(&self) -> &DynTty;
-    fn inner_mut(&mut self) -> &mut DynTty;
-}
-
-pub trait CliTestApi: ExecBase {
+pub trait CliTestApi: InnerTty {
     fn script_run(&mut self, script: &str, timeout: u32) -> Result<(), Box<dyn Error>>;
     fn assert_script_run(&mut self, script: &str, timeout: u32) -> Result<(), Box<dyn Error>>;
     fn background_script_run(&mut self, script: &str) -> Result<(), Box<dyn Error>>;

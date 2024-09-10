@@ -13,3 +13,8 @@ pub type DynTty = Box<dyn Tty + Send>;
 pub trait WrapperTty: Tty {
     fn exit(self) -> DynTty;
 }
+
+pub trait InnerTty: WrapperTty {
+    fn inner_ref(&self) -> &DynTty;
+    fn inner_mut(&mut self) -> &mut DynTty;
+}

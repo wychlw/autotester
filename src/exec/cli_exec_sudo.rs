@@ -1,12 +1,12 @@
 use std::any::Any;
 
 use crate::{
-    term::tty::{DynTty, Tty, WrapperTty},
+    term::tty::{DynTty, InnerTty, Tty, WrapperTty},
     util::anybase::AnyBase,
 };
 
 use super::{
-    cli_api::{CliTestApi, ExecBase, SudoCliTestApi},
+    cli_api::{CliTestApi, SudoCliTestApi},
     cli_exec::CliTester,
 };
 
@@ -54,7 +54,7 @@ impl WrapperTty for SudoCliTester {
     }
 }
 
-impl ExecBase for SudoCliTester {
+impl InnerTty for SudoCliTester {
     fn inner_ref(&self) -> &DynTty {
         self.inner.inner_ref()
     }
