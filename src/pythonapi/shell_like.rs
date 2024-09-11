@@ -1,6 +1,6 @@
 use std::ptr::null_mut;
 
-use pyo3::{exceptions::PyTypeError, prelude::*};
+use pyo3::{exceptions::PyRuntimeError, prelude::*};
 use serde::Deserialize;
 
 use crate::{
@@ -11,7 +11,7 @@ use crate::{
     }, util::anybase::heap_raw
 };
 
-use super::{pyexec::handle_clitester, pyhook::PyTtyHook, pyshell::{handle_shell, PyTtyShellConf}, pytee::PyTeeConf};
+use super::{pyexec::handle_clitester, pyhook::PyTtyHook, pyshell::{handle_shell, PyShellConf}, pytee::PyTeeConf};
 
 pub type TtyType = DynTty;
 
@@ -22,7 +22,7 @@ pub struct PyTtyWrapper {
 impl PyTtyWrapper {
     pub fn take(&mut self) -> PyResult<*mut TtyType> {
         if self.tty.is_null() {
-            return Err(PyTypeError::new_err(
+            return Err(PyRuntimeError::new_err(
                 "You gave me it, you will never own it again.",
             ));
         }
@@ -36,7 +36,7 @@ impl PyTtyWrapper {
     }
     pub fn get(&self) -> PyResult<&TtyType> {
         if self.tty.is_null() {
-            return Err(PyTypeError::new_err(
+            return Err(PyRuntimeError::new_err(
                 "You gave me it, you will never own it again.",
             ));
         }
@@ -44,7 +44,7 @@ impl PyTtyWrapper {
     }
     pub fn get_mut(&self) -> PyResult<&mut TtyType> {
         if self.tty.is_null() {
-            return Err(PyTypeError::new_err(
+            return Err(PyRuntimeError::new_err(
                 "You gave me it, you will never own it again.",
             ));
         }
@@ -69,7 +69,7 @@ impl PyTty {
 struct PyTtyConf {
     // unwrapable
     wrap: Option<bool>,
-    shell: Option<PyTtyShellConf>,
+    shell: Option<PyShellConf>,
     tee: Option<PyTeeConf>,
 
     // wrapable
@@ -89,7 +89,7 @@ pub fn handle_wrap(
     be_wrapped: Option<&mut PyTty>,
 ) -> PyResult<()> {
     if be_wrapped.is_none() {
-        return Err(PyTypeError::new_err(
+        return Err(PyRuntimeError::new_err(
             "be_wrapped must be provided when wrap is true",
         ));
     }
@@ -103,7 +103,7 @@ pub fn handle_wrap(
 
 pub fn handle_simple_recorder(inner: &mut Option<PyTtyWrapper>) -> PyResult<()> {
     if inner.is_none() {
-        return Err(PyTypeError::new_err(
+        return Err(PyRuntimeError::new_err(
             "You must define at least one valid object",
         ));
     }
@@ -120,7 +120,7 @@ pub fn handle_simple_recorder(inner: &mut Option<PyTtyWrapper>) -> PyResult<()> 
 }
 pub fn handle_asciicast(inner: &mut Option<PyTtyWrapper>) -> PyResult<()> {
     if inner.is_none() {
-        return Err(PyTypeError::new_err(
+        return Err(PyRuntimeError::new_err(
             "You must define at least one valid object",
         ));
     }
@@ -184,7 +184,7 @@ impl PyTty {
         }
 
         if inner.is_none() {
-            return Err(PyTypeError::new_err(
+            return Err(PyRuntimeError::new_err(
                 "You must define at least one valid object",
             ));
         }
@@ -199,19 +199,19 @@ impl PyTty {
         let inner = self.inner.get_mut()?;
         (*inner)
             .read()
-            .map_err(|e| PyTypeError::new_err(e.to_string()))
+            .map_err(|e| PyRuntimeError::new_err(e.to_string()))
     }
     fn read_line(&mut self) -> PyResult<Vec<u8>> {
         let inner = self.inner.get_mut()?;
         (*inner)
             .read_line()
-            .map_err(|e| PyTypeError::new_err(e.to_string()))
+            .map_err(|e| PyRuntimeError::new_err(e.to_string()))
     }
     fn write(&mut self, data: &[u8]) -> PyResult<()> {
         let inner = self.inner.get_mut()?;
         (*inner)
             .write(data)
-            .map_err(|e| PyTypeError::new_err(e.to_string()))
+            .map_err(|e| PyRuntimeError::new_err(e.to_string()))
     }
 
     // WrapperTty begin
@@ -238,7 +238,7 @@ impl PyTty {
                 },
             })
         } else {
-            Err(PyTypeError::new_err("This type doesn't have function exit"))
+            Err(PyRuntimeError::new_err("This type doesn't have function exit"))
         }
     }
 
@@ -252,14 +252,14 @@ impl PyTty {
             let inner = inner.downcast_mut::<SimpleRecorder>().unwrap();
             inner
                 .begin()
-                .map_err(|e| PyTypeError::new_err(e.to_string()))
+                .map_err(|e| PyRuntimeError::new_err(e.to_string()))
         } else if let Some(_) = inner.downcast_ref::<Asciicast>() {
             let inner = inner.downcast_mut::<Asciicast>().unwrap();
             inner
                 .begin()
-                .map_err(|e| PyTypeError::new_err(e.to_string()))
+                .map_err(|e| PyRuntimeError::new_err(e.to_string()))
         } else {
-            Err(PyTypeError::new_err(
+            Err(PyRuntimeError::new_err(
                 "This type doesn't have function begin",
             ))
         }
@@ -271,12 +271,12 @@ impl PyTty {
 
         if let Some(_) = inner.downcast_ref::<SimpleRecorder>() {
             let inner = inner.downcast_mut::<SimpleRecorder>().unwrap();
-            inner.end().map_err(|e| PyTypeError::new_err(e.to_string()))
+            inner.end().map_err(|e| PyRuntimeError::new_err(e.to_string()))
         } else if let Some(_) = inner.downcast_ref::<Asciicast>() {
             let inner = inner.downcast_mut::<Asciicast>().unwrap();
-            inner.end().map_err(|e| PyTypeError::new_err(e.to_string()))
+            inner.end().map_err(|e| PyRuntimeError::new_err(e.to_string()))
         } else {
-            Err(PyTypeError::new_err("This type doesn't have function end"))
+            Err(PyRuntimeError::new_err("This type doesn't have function end"))
         }
     }
 
@@ -288,14 +288,14 @@ impl PyTty {
             let inner = inner.downcast_mut::<SimpleRecorder>().unwrap();
             inner
                 .start()
-                .map_err(|e| PyTypeError::new_err(e.to_string()))
+                .map_err(|e| PyRuntimeError::new_err(e.to_string()))
         } else if let Some(_) = inner.downcast_ref::<Asciicast>() {
             let inner = inner.downcast_mut::<Asciicast>().unwrap();
             inner
                 .start()
-                .map_err(|e| PyTypeError::new_err(e.to_string()))
+                .map_err(|e| PyRuntimeError::new_err(e.to_string()))
         } else {
-            Err(PyTypeError::new_err(
+            Err(PyRuntimeError::new_err(
                 "This type doesn't have function start",
             ))
         }
@@ -309,14 +309,14 @@ impl PyTty {
             let inner = inner.downcast_mut::<SimpleRecorder>().unwrap();
             inner
                 .pause()
-                .map_err(|e| PyTypeError::new_err(e.to_string()))
+                .map_err(|e| PyRuntimeError::new_err(e.to_string()))
         } else if let Some(_) = inner.downcast_ref::<Asciicast>() {
             let inner = inner.downcast_mut::<Asciicast>().unwrap();
             inner
                 .pause()
-                .map_err(|e| PyTypeError::new_err(e.to_string()))
+                .map_err(|e| PyRuntimeError::new_err(e.to_string()))
         } else {
-            Err(PyTypeError::new_err(
+            Err(PyRuntimeError::new_err(
                 "This type doesn't have function pause",
             ))
         }
@@ -332,7 +332,7 @@ impl PyTty {
             let target = Box::into_inner(target);
             let target = inner.swap(target);
             if let Err(e) = target {
-                return Err(PyTypeError::new_err(e.to_string()));
+                return Err(PyRuntimeError::new_err(e.to_string()));
             }
             let target = target.unwrap();
             other.inner.tty = heap_raw(target);
@@ -343,13 +343,13 @@ impl PyTty {
             let target = Box::into_inner(target);
             let target = inner.swap(target);
             if let Err(e) = target {
-                return Err(PyTypeError::new_err(e.to_string()));
+                return Err(PyRuntimeError::new_err(e.to_string()));
             }
             let target = target.unwrap();
             other.inner.tty = heap_raw(target);
             Ok(())
         } else {
-            Err(PyTypeError::new_err("This type doesn't have function swap"))
+            Err(PyRuntimeError::new_err("This type doesn't have function swap"))
         }
     }
 
@@ -364,7 +364,7 @@ impl PyTty {
             let res = inner.inner;
             Ok(res)
         } else {
-            Err(PyTypeError::new_err("You can only unhook Hook"))
+            Err(PyRuntimeError::new_err("You can only unhook Hook"))
         }
     }
 }

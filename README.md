@@ -8,6 +8,7 @@
 - python：Python 侧代码
 - src：Rust 侧代码
 - tests：应用测试及示例
+- apps：Python 实际测试脚本
 
 ## fin
 

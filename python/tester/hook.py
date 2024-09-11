@@ -96,6 +96,6 @@ class GlobalCallHook:
     
     def __init__(self, func):
         self.set_global("__hook_func__", GlobalCallHook.hook_call)
-        if not hasattr(func, 'hooked__'):
+        if not hasattr(func, '__hooked__'):
             self.replace_global_call(func)
             func.__hooked__ = True

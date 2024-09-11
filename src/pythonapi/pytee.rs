@@ -1,4 +1,4 @@
-use pyo3::{exceptions::PyTypeError, pyclass, pymethods, PyResult};
+use pyo3::{exceptions::PyRuntimeError, pyclass, pymethods, PyResult};
 use serde::Deserialize;
 
 use crate::{term::tee::Tee, util::anybase::heap_raw};
@@ -13,7 +13,7 @@ pub struct PyTeeConf {
 pub fn handle_tee(inner: &mut Option<PyTtyWrapper>, tee_conf: PyTeeConf) -> PyResult<()> {
     let path = tee_conf.path;
     if inner.is_none() {
-        return Err(PyTypeError::new_err(
+        return Err(PyRuntimeError::new_err(
             "You must define at least one valid object",
         ));
     }

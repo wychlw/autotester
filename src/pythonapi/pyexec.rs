@@ -1,4 +1,4 @@
-use pyo3::{exceptions::PyTypeError, pyclass, pymethods, PyRefMut, PyResult};
+use pyo3::{exceptions::PyRuntimeError, pyclass, pymethods, PyRefMut, PyResult};
 
 use crate::{
     exec::{
@@ -13,13 +13,13 @@ use super::shell_like::{handle_wrap, PyTty, PyTtyWrapper, TtyType};
 
 pub fn handle_clitester(inner: &mut Option<PyTtyWrapper>, need_sudo: Option<bool>) -> PyResult<()> {
     if inner.is_none() {
-        return Err(PyTypeError::new_err(
+        return Err(PyRuntimeError::new_err(
             "You must define at least one valid object",
         ));
     }
     let mut be_wrapped = inner.take().unwrap();
     if be_wrapped.tty.is_null() {
-        return Err(PyTypeError::new_err(
+        return Err(PyRuntimeError::new_err(
             "You gave me it, you will never own it again.",
         ));
     }
@@ -69,14 +69,14 @@ impl PyExec {
             let inner = inner.downcast_mut::<CliTester>().unwrap();
             inner
                 .script_run(script, timeout)
-                .map_err(|e| PyTypeError::new_err(e.to_string()))?;
+                .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
         } else if let Some(_) = inner.downcast_ref::<SudoCliTester>() {
             let inner = inner.downcast_mut::<SudoCliTester>().unwrap();
             inner
                 .script_run(script, timeout)
-                .map_err(|e| PyTypeError::new_err(e.to_string()))?;
+                .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
         } else {
-            return Err(PyTypeError::new_err(
+            return Err(PyRuntimeError::new_err(
                 "Can't find the right object to run the script",
             ));
         }
@@ -99,14 +99,14 @@ impl PyExec {
             let inner = inner.downcast_mut::<CliTester>().unwrap();
             inner
                 .assert_script_run(script, timeout)
-                .map_err(|e| PyTypeError::new_err(e.to_string()))?;
+                .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
         } else if let Some(_) = inner.downcast_ref::<SudoCliTester>() {
             let inner = inner.downcast_mut::<SudoCliTester>().unwrap();
             inner
                 .assert_script_run(script, timeout)
-                .map_err(|e| PyTypeError::new_err(e.to_string()))?;
+                .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
         } else {
-            return Err(PyTypeError::new_err(
+            return Err(PyRuntimeError::new_err(
                 "Can't find the right object to run the script",
             ));
         }
@@ -122,14 +122,14 @@ impl PyExec {
             let inner = inner.downcast_mut::<CliTester>().unwrap();
             inner
                 .background_script_run(script)
-                .map_err(|e| PyTypeError::new_err(e.to_string()))?;
+                .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
         } else if let Some(_) = inner.downcast_ref::<SudoCliTester>() {
             let inner = inner.downcast_mut::<SudoCliTester>().unwrap();
             inner
                 .background_script_run(script)
-                .map_err(|e| PyTypeError::new_err(e.to_string()))?;
+                .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
         } else {
-            return Err(PyTypeError::new_err(
+            return Err(PyRuntimeError::new_err(
                 "Can't find the right object to run the script",
             ));
         }
@@ -145,14 +145,14 @@ impl PyExec {
             let inner = inner.downcast_mut::<CliTester>().unwrap();
             inner
                 .writeln(script)
-                .map_err(|e| PyTypeError::new_err(e.to_string()))?;
+                .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
         } else if let Some(_) = inner.downcast_ref::<SudoCliTester>() {
             let inner = inner.downcast_mut::<SudoCliTester>().unwrap();
             inner
                 .writeln(script)
-                .map_err(|e| PyTypeError::new_err(e.to_string()))?;
+                .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
         } else {
-            return Err(PyTypeError::new_err(
+            return Err(PyRuntimeError::new_err(
                 "Can't find the right object to run the script",
             ));
         }
@@ -175,14 +175,14 @@ impl PyExec {
             let inner = inner.downcast_mut::<CliTester>().unwrap();
             inner
                 .wait_serial(expected, timeout)
-                .map_err(|e| PyTypeError::new_err(e.to_string()))?;
+                .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
         } else if let Some(_) = inner.downcast_ref::<SudoCliTester>() {
             let inner = inner.downcast_mut::<SudoCliTester>().unwrap();
             inner
                 .wait_serial(expected, timeout)
-                .map_err(|e| PyTypeError::new_err(e.to_string()))?;
+                .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
         } else {
-            return Err(PyTypeError::new_err(
+            return Err(PyRuntimeError::new_err(
                 "Can't find the right object to run the script",
             ));
         }
@@ -205,9 +205,9 @@ impl PyExec {
             let inner = inner.downcast_mut::<SudoCliTester>().unwrap();
             inner
                 .script_sudo(script, timeout)
-                .map_err(|e| PyTypeError::new_err(e.to_string()))?;
+                .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
         } else {
-            return Err(PyTypeError::new_err(
+            return Err(PyRuntimeError::new_err(
                 "Can't find the right object to run the script",
             ));
         }
@@ -230,9 +230,9 @@ impl PyExec {
             let inner = inner.downcast_mut::<SudoCliTester>().unwrap();
             inner
                 .assert_script_sudo(script, timeout)
-                .map_err(|e| PyTypeError::new_err(e.to_string()))?;
+                .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
         } else {
-            return Err(PyTypeError::new_err(
+            return Err(PyRuntimeError::new_err(
                 "Can't find the right object to run the script",
             ));
         }
