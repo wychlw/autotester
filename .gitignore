@@ -1,5 +1,6 @@
 /target
 *.log
+*.cast
 
 # Byte-compiled / optimized / DLL files
 

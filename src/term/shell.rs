@@ -3,7 +3,7 @@ use std::{
     collections::HashMap,
     env,
     error::Error,
-    io::{BufReader, ErrorKind, Read, Write},
+    io::{ErrorKind, Read, Write},
     process::{ChildStdin, Command, Stdio},
     sync::{Arc, Mutex},
     thread::{sleep, spawn, JoinHandle},

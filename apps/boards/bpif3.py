@@ -3,7 +3,7 @@ For board banana pi f3
 """
 
 from time import sleep
-from tester import PyTty, PySerial, PySdWirec, PyExec
+from tester import PyTty, PySerial, PySdWirec, PyExec, info
 
 
 class BPiF3:
@@ -23,7 +23,8 @@ class BPiF3:
         self.sdwirec.to_ts()
         sleep(0.5)
         shell.assert_script_sudo(
-            f"dd if={img} of={dsk} bs=1M status=progress", 600)
+            f"dd if={img} of={dsk} status=progress", 600)
+        shell.assert_script_sudo("sync")
         sleep(0.5)
         self.sdwirec.to_dut()
         sleep(0.5)
@@ -35,7 +36,8 @@ class BPiF3:
         Maybe some relay or something?
         But for now, manually power cycle the board.
         """
-        input("Please power cycle the board and press enter to continue.")
+        info("Please power cycle the board and continue. You have arount 10s.")
+        sleep(10)
 
     def get_console(self) -> PyTty:
         """

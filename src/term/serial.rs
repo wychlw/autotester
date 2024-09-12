@@ -7,9 +7,9 @@ use std::time::Duration;
 use serialport::{self, SerialPort};
 
 use crate::consts::SHELL_DURATION;
-use crate::{err, info};
 use crate::term::tty::Tty;
 use crate::util::anybase::AnyBase;
+use crate::{err, info};
 
 pub struct Serial {
     inner: Box<dyn SerialPort>,
@@ -17,7 +17,9 @@ pub struct Serial {
 
 impl Serial {
     pub fn build(port: &str, baud: u32) -> Result<Serial, Box<dyn Error>> {
-        let inner = serialport::new(port, baud).open();
+        let inner = serialport::new(port, baud)
+            .timeout(Duration::from_millis(50))
+            .open();
 
         if let Err(e) = inner {
             err!("Open serial port failed! Reason: {}", e);
@@ -47,15 +49,18 @@ impl AnyBase for Serial {
 impl Tty for Serial {
     fn read(&mut self) -> Result<Vec<u8>, Box<dyn Error>> {
         let mut buf = Vec::new();
+        sleep(Duration::from_millis(SHELL_DURATION));
         loop {
-            sleep(Duration::from_millis(SHELL_DURATION));
             let mut buff = [0u8];
             match self.inner.read(&mut buff) {
                 Ok(_) => {
+                    if buff[0] == 0x0 {
+                        return Ok(buf);
+                    }
                     buf.extend_from_slice(&buff);
-                    return Ok(buf);
                 }
                 Err(e) if e.kind() == ErrorKind::Interrupted => continue,
+                Err(e) if e.kind() == ErrorKind::TimedOut => return Ok(buf),
                 Err(e) => {
                     err!("Read from serial port failed. Reason: {}", e);
                     return Err(Box::new(e));
@@ -65,8 +70,8 @@ impl Tty for Serial {
     }
     fn read_line(&mut self) -> Result<Vec<u8>, Box<dyn Error>> {
         let mut buf = Vec::new();
+        sleep(Duration::from_millis(SHELL_DURATION));
         loop {
-            sleep(Duration::from_millis(SHELL_DURATION));
             let mut buff = [0u8];
             match self.inner.read(&mut buff) {
                 Ok(_) => {
@@ -87,9 +92,16 @@ impl Tty for Serial {
     fn write(&mut self, data: &[u8]) -> Result<(), Box<dyn Error>> {
         loop {
             sleep(Duration::from_millis(SHELL_DURATION));
+            self.inner.flush()?;
             match self.inner.write_all(data) {
-                Ok(_) => break,
-                Err(e) if e.kind() == ErrorKind::Interrupted => continue,
+                Ok(_) => {
+                    self.inner.flush()?;
+                    break;
+                },
+                Err(e) if e.kind() == ErrorKind::Interrupted => {
+                    info!("Write being Interrupted!");
+                    continue;
+                },
                 Err(e) => {
                     err!("Write to serial port failed. Reason: {}", e);
                     return Err(Box::new(e));

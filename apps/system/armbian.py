@@ -5,16 +5,19 @@ For Armbian OS
 from time import sleep
 from tester import PyExec
 
-def slp(t = 0.5):
+
+def slp(t=0.5):
     """
     Sleep for t second.
     """
     sleep(t)
 
+
 class Armbian:
     """
     System class for Armbian.
     """
+
     def __init__(self, tty: PyExec):
         self.tty = tty
 
@@ -38,32 +41,34 @@ class Armbian:
         """
 
         # init settings
-        self.wit("IP address:")
-        self.wln("")
-        self.wit("Create root password:")
+        self.wit("Create root password")
         self.wln("autotest_123")
-        self.wit("Repeat root password:")
+        self.wit("Repeat root password")
         self.wln("autotest_123")
         # Choose default system command shell:
-        slp(2)
-        self.wln("1")
+        # slp(2)
+        # self.wln("1")
 
         # register new user
-        self.wit("(eg. your first name):")
+        self.wit("(eg. your first name)")
         self.wln("plct")
-        self.wit("password:")
+        self.wit("password")
         self.wln("plct_123")
-        self.wit("password:")
+        self.wit("password")
         self.wln("plct_123")
-        self.wit("real name:")
-        self.wln("Plct")
+        self.wit("real name")
+        self.wln("")
 
-        # Set user language based on your location? [Y/n]
-        self.wit("[Y/n]")
-        self.wln("y")
-        # Set time zone
-        self.wit("choice:")
-        self.wln("328")
+        try:
+            self.wit("wireless", 10)
+            self.wln("n")
+        except Exception:
+            pass
+
+        # At your location, more locales are possible:
+        self.wit("location")
+        slp(2)
+        self.wln("332")
         # Please select a continent, ocean, "coord", or "TZ".
         self.wit("#?")
         self.wln("4")

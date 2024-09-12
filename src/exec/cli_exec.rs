@@ -6,7 +6,7 @@ use std::{
 };
 
 use crate::{
-    consts::DURATION, err, log, term::tty::{DynTty, InnerTty, Tty, WrapperTty}, util::{anybase::AnyBase, util::rand_string}
+    consts::DURATION, err, info, log, term::tty::{DynTty, InnerTty, Tty, WrapperTty}, util::{anybase::AnyBase, util::rand_string}
 };
 
 use super::cli_api::CliTestApi;
@@ -23,7 +23,7 @@ impl CliTester {
 
 impl CliTester {
     fn run_command(&mut self, command: &String) -> Result<(), Box<dyn Error>> {
-        log!("Write to shell: {}", command);
+        info!("Write to shell: {}", command);
         let res = self.inner.write(command.as_bytes());
         if let Err(e) = res {
             return Err(e);
@@ -78,6 +78,7 @@ impl CliTestApi for CliTester {
     fn wait_serial(&mut self, expected: &str, timeout: u32) -> Result<(), Box<dyn Error>> {
         let begin = Instant::now();
         let mut buf = Vec::new();
+        info!("Waiting for string {{{}}}", expected);
         loop {
             sleep(Duration::from_millis(DURATION));
             let res = self.inner.read();
@@ -86,8 +87,9 @@ impl CliTestApi for CliTester {
             }
             let line = res.unwrap();
             buf.extend_from_slice(&line);
-            let content = String::from_utf8(buf.clone()).unwrap();
+            let content = String::from_utf8(buf.clone()).unwrap_or_default();
             if content.contains(expected) {
+                info!("Matched string {{{}}}", expected);
                 break;
             }
             if begin.elapsed().as_secs() > timeout as u64 {

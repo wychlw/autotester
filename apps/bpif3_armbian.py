@@ -29,7 +29,8 @@ def default_proc():
 
     board = BPiF3("id = 0\n", "/dev/ttyUSB0", 115200)
 
-    url = "/AArmbian-bpi-SpacemiT_24.5.0-trunk_Bananapif3_mantic_legacy_6.1.15_xfce_desktop.img.xz" # 度盘，dummy
+    # url = "/Armbian-bpi-SpacemiT_24.5.0-trunk_Bananapif3_mantic_legacy_6.1.15_xfce_desktop.img.xz" # 度盘，dummy
+    url = "https://mirrors.tuna.tsinghua.edu.cn/armbian-releases/bananapif3/archive/Armbian_24.8.1_Bananapif3_noble_legacy_6.1.15_minimal.img.xz"
     work_dir = "/home/lw/Work/plct/boards/bpif3/armbian"
     img = wget_image(url, work_dir)
     if img is None:
@@ -43,11 +44,12 @@ def default_proc():
 
     info("Begin flashing board...")
 
-    board.flash(e, img)
+    board.flash(e, img, "/dev/mmcblk0")
 
     info("Flash board ended...")
 
     console = board.get_console()
+    console = PyTee(console, "con.log")
 
     asciicast = e.exit()
     local_shell = swap_tty(asciicast, console)
@@ -61,13 +63,24 @@ def default_proc():
 
     system.loggin()
 
+    asciicast = e.exit()
+    logger = PyTty("wrap=true\nsimple_recorder=true\n", asciicast)
+    logger.begin()
+    e = PyExec(logger)
+    system.tty = e
+
     system.get_info()
 
-    asciicast = e.exit()
+    logger = e.exit()
+    info_log = logger.end()
+    asciicast = logger.exit()
     res = asciicast.end()
 
-    with open("res.cast") as f:
+    with open("res.cast", "w") as f:
         f.write(res)
+
+    with open("info.log", "w") as f:
+        f.write(info_log)
 
 if __name__ == "__main__":
     default_proc()

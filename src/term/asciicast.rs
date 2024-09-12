@@ -85,7 +85,7 @@ impl Asciicast {
                 logged.push(Entry {
                     time: timestamp,
                     event_type: EventType::Output,
-                    event_data: String::from_utf8(new_data.clone()).unwrap(),
+                    event_data: String::from_utf8(new_data.clone()).unwrap_or_default(),
                 });
             }
 
@@ -144,29 +144,30 @@ impl Tty for Asciicast {
         return Ok(res);
     }
     fn write(&mut self, data: &[u8]) -> Result<(), Box<dyn Error>> {
-        let begin = self.begin.lock();
-        if let Err(_) = begin {
-            return Err(Box::<dyn Error>::from("Recorder not started."));
-        }
-        let begin = begin.unwrap();
-        if *begin {
-            let begin_time = self.begin_time.lock().unwrap();
-            let time = begin_time.elapsed().unwrap();
-            let timestamp = time.as_millis();
-            let timestamp = timestamp as f64 / 1000.0;
-            let mut logged = self.logged.lock().unwrap();
-            let line = String::from_utf8(data.to_vec()).unwrap();
-            let line = SHELL_PROMPT.to_string() + &line;
-            let line = line.replace("\\n", "\\r\\n");
-            logged.push(Entry {
-                time: timestamp,
-                // event_type: EventType::Input,
-                event_type: EventType::Output,
-                event_data: line,
-            });
-        }
+        // let begin = self.begin.lock();
+        // if let Err(_) = begin {
+        //     return Err(Box::<dyn Error>::from("Recorder not started."));
+        // }
+        // let begin = begin.unwrap();
+        // if *begin {
+        //     let begin_time = self.begin_time.lock().unwrap();
+        //     let time = begin_time.elapsed().unwrap();
+        //     let timestamp = time.as_millis();
+        //     let timestamp = timestamp as f64 / 1000.0;
+        //     let mut logged = self.logged.lock().unwrap();
+        //     let line = String::from_utf8(data.to_vec()).unwrap();
+        //     let line = SHELL_PROMPT.to_string() + &line;
+        //     let line = line.replace("\\n", "\\r\\n");
+        //     logged.push(Entry {
+        //         time: timestamp,
+        //         // event_type: EventType::Input,
+        //         event_type: EventType::Output,
+        //         event_data: line,
+        //     });
+        // }
 
-        let mut inner = self.inner.lock().unwrap();
+        let inner = self.inner.clone();
+        let mut inner = inner.lock().unwrap();
         if inner.is_none() {
             return Err(Box::<dyn Error>::from("You've already exited."));
         }
@@ -179,7 +180,8 @@ impl Tty for Asciicast {
 
 impl WrapperTty for Asciicast {
     fn exit(self) -> DynTty {
-        let mut inner = self.inner.lock().unwrap();
+        let inner = self.inner.clone();
+        let mut inner = inner.lock().unwrap();
         let inner = inner.take().unwrap();
         inner
     }
@@ -279,14 +281,14 @@ impl Recorder for Asciicast {
     }
 
     fn swap(&mut self, target: DynTty) -> Result<DynTty, Box<dyn Error>> {
-        sleep(Duration::from_micros(100));
-        let mut inner = self.inner.lock().unwrap();
+        sleep(Duration::from_micros(DURATION));
+        let inner = self.inner.clone();
+        let mut inner = inner.lock().unwrap();
         if inner.is_none() {
             return Err(Box::<dyn Error>::from("You've already exited."));
         }
         let res = inner.take().unwrap();
         *inner = Some(target);
-        sleep(Duration::from_micros(100));
         Ok(res)
     }
 }
