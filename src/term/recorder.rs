@@ -1,6 +1,6 @@
 use std::{any::Any, error::Error, mem::replace};
 
-use crate::{consts::SHELL_PROMPT, term::tty::Tty, util::anybase::AnyBase};
+use crate::{consts::SHELL_PROMPT, info, term::tty::Tty, util::anybase::AnyBase};
 
 use super::tty::{DynTty, WrapperTty};
 
@@ -24,6 +24,7 @@ pub struct SimpleRecorder {
 
 impl SimpleRecorder {
     pub fn build(inner: DynTty) -> SimpleRecorder {
+        info!("Create a simple recorder to record.");
         SimpleRecorder {
             inner,
             logged: Vec::new(),
@@ -99,6 +100,9 @@ impl Recorder for SimpleRecorder
     fn begin(&mut self) -> Result<(), Box<dyn Error>> {
         self.logged.clear();
         self.begin = true;
+
+        info!("Recorder begin to record.");
+
         return Ok(());
     }
 
@@ -112,14 +116,18 @@ impl Recorder for SimpleRecorder
         let logged = self.logged.clone();
         self.logged.clear();
 
+        info!("Recorder end to record.");
+
         return Ok(String::from_utf8(logged).unwrap());
     }
     fn pause(&mut self) -> Result<(), Box<dyn Error>> {
         self.begin = false;
+        info!("Recorder pause for recording...");
         return Ok(());
     }
     fn start(&mut self) -> Result<(), Box<dyn Error>> {
         self.begin = true;
+        info!("Recorder continue for recording...");
         return Ok(());
     }
     fn swap(&mut self, target: DynTty) -> Result<DynTty, Box<dyn Error>> {

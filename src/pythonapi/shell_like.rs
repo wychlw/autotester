@@ -4,14 +4,24 @@ use pyo3::{exceptions::PyRuntimeError, prelude::*};
 use serde::Deserialize;
 
 use crate::{
-    log, pythonapi::pytee::handle_tee, term::{
+    exec::{cli_exec::CliTester, cli_exec_sudo::SudoCliTester},
+    log,
+    pythonapi::pytee::handle_tee,
+    term::{
         asciicast::Asciicast,
         recorder::{Recorder, SimpleRecorder},
+        tee::Tee,
         tty::{DynTty, WrapperTty},
-    }, util::anybase::heap_raw
+    },
+    util::anybase::heap_raw,
 };
 
-use super::{pyexec::handle_clitester, pyhook::PyTtyHook, pyshell::{handle_shell, PyShellConf}, pytee::PyTeeConf};
+use super::{
+    pyexec::handle_clitester,
+    pyhook::PyTtyHook,
+    pyshell::{handle_shell, PyShellConf},
+    pytee::PyTeeConf,
+};
 
 pub type TtyType = DynTty;
 
@@ -152,7 +162,7 @@ impl PyTty {
     /**
      * NOTICE!
      * This API is only for supporting with t-autotest.
-     * In future every initlizer will be defined in 
+     * In future every initlizer will be defined in
      * separate class, while new Tty-like object will
      * not be added in this class.
      */
@@ -237,8 +247,34 @@ impl PyTty {
                     tty: heap_raw(inner),
                 },
             })
+        } else if let Some(_) = inner.downcast_ref::<Tee>() {
+            let inner = inner.downcast::<Tee>().unwrap();
+            let inner = inner.exit();
+            Ok(PyTty {
+                inner: PyTtyWrapper {
+                    tty: heap_raw(inner),
+                },
+            })
+        } else if let Some(_) = inner.downcast_ref::<CliTester>() {
+            let inner = inner.downcast::<CliTester>().unwrap();
+            let inner = inner.exit();
+            Ok(PyTty {
+                inner: PyTtyWrapper {
+                    tty: heap_raw(inner),
+                },
+            })
+        } else if let Some(_) = inner.downcast_ref::<SudoCliTester>() {
+            let inner = inner.downcast::<SudoCliTester>().unwrap();
+            let inner = inner.exit();
+            Ok(PyTty {
+                inner: PyTtyWrapper {
+                    tty: heap_raw(inner),
+                },
+            })
         } else {
-            Err(PyRuntimeError::new_err("This type doesn't have function exit"))
+            Err(PyRuntimeError::new_err(
+                "This type doesn't have function exit",
+            ))
         }
     }
 
@@ -271,12 +307,18 @@ impl PyTty {
 
         if let Some(_) = inner.downcast_ref::<SimpleRecorder>() {
             let inner = inner.downcast_mut::<SimpleRecorder>().unwrap();
-            inner.end().map_err(|e| PyRuntimeError::new_err(e.to_string()))
+            inner
+                .end()
+                .map_err(|e| PyRuntimeError::new_err(e.to_string()))
         } else if let Some(_) = inner.downcast_ref::<Asciicast>() {
             let inner = inner.downcast_mut::<Asciicast>().unwrap();
-            inner.end().map_err(|e| PyRuntimeError::new_err(e.to_string()))
+            inner
+                .end()
+                .map_err(|e| PyRuntimeError::new_err(e.to_string()))
         } else {
-            Err(PyRuntimeError::new_err("This type doesn't have function end"))
+            Err(PyRuntimeError::new_err(
+                "This type doesn't have function end",
+            ))
         }
     }
 
@@ -349,7 +391,9 @@ impl PyTty {
             other.inner.tty = heap_raw(target);
             Ok(())
         } else {
-            Err(PyRuntimeError::new_err("This type doesn't have function swap"))
+            Err(PyRuntimeError::new_err(
+                "This type doesn't have function swap",
+            ))
         }
     }
 

@@ -32,37 +32,5 @@ pub mod util {
     pub mod singleton;
     pub mod util;
 }
-pub mod pythonapi {
-    pub mod shell_like;
+pub mod pythonapi;
 
-    pub mod pyexec;
-    pub mod pyshell;
-    pub mod pytee;
-
-    pub mod pyhook;
-
-    pub mod util;
-}
-
-use pyo3::prelude::*;
-use pythonapi::{
-    pyexec::PyExec,
-    pyhook::build_ttyhook,
-    pyshell::PyShell,
-    pytee::PyTee,
-    shell_like::PyTty,
-    util::{get_log_level, set_log_level},
-};
-
-#[pymodule]
-#[pyo3(name = "tester")]
-fn tester(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    m.add_class::<PyTty>()?;
-    m.add_class::<PyShell>()?;
-    m.add_class::<PyTee>()?;
-    m.add_class::<PyExec>()?;
-    m.add_function(wrap_pyfunction!(build_ttyhook, m)?)?;
-    m.add_function(wrap_pyfunction!(set_log_level, m)?)?;
-    m.add_function(wrap_pyfunction!(get_log_level, m)?)?;
-    Ok(())
-}

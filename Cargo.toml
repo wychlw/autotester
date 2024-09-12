@@ -19,6 +19,7 @@ ssh2 = "0.9.4"
 subprocess = "0.2.9"
 tokio = { version = "1", features = ["full"] }
 toml = "0.8.19"
+colored = "2.1.0"
 
 [toolchain]
 channel = "nightly"

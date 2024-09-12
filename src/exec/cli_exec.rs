@@ -106,7 +106,7 @@ impl CliTestApi for CliTester {
         let mut cmd = script.to_owned();
         let echo_content_rand = String::from_utf8(rand_string(8)).unwrap();
 
-        cmd += "; echo ";
+        cmd += "&& echo ";
         cmd += &echo_content_rand;
         cmd += " \n";
 
@@ -128,7 +128,7 @@ impl CliTestApi for CliTester {
         let mut cmd = script.to_owned();
         let echo_content_rand = String::from_utf8(rand_string(8)).unwrap();
 
-        cmd += "; echo ";
+        cmd += "&& echo ";
         cmd += &echo_content_rand;
         cmd += " \n";
 

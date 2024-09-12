@@ -7,7 +7,7 @@ use std::time::Duration;
 use serialport::{self, SerialPort};
 
 use crate::consts::SHELL_DURATION;
-use crate::err;
+use crate::{err, info};
 use crate::term::tty::Tty;
 use crate::util::anybase::AnyBase;
 
@@ -23,6 +23,8 @@ impl Serial {
             err!("Open serial port failed! Reason: {}", e);
             return Err(Box::new(e));
         }
+
+        info!("Serial port opened: {} at baud rate {}", port, baud);
 
         return Ok(Serial {
             inner: inner.unwrap(),

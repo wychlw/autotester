@@ -4,6 +4,8 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+use crate::info;
+
 use super::devhost::DevHost;
 
 pub struct Sdwirec {}
@@ -128,6 +130,7 @@ impl Sdwirec {
                 ),
             )));
         }
+        info!("Switched device {} to TS", self.format_device(chooser));
         Ok(())
     }
 
@@ -154,6 +157,7 @@ impl Sdwirec {
                 ),
             )));
         }
+        info!("Switched device {} to DUT", self.format_device(chooser));
         Ok(())
     }
 

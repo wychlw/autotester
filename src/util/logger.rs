@@ -1,3 +1,5 @@
+use colored::Colorize;
+
 use crate::singleton;
 
 pub enum LogLevel {
@@ -7,11 +9,11 @@ pub enum LogLevel {
     Error = 30,
 }
 
-singleton!(LogLevelConf, i32, LogLevel::Debug as i32);
+singleton!(LogLevelConf, i32, LogLevel::Info as i32);
 
 pub fn __log(s: &str) {
-    if LogLevelConf::get().to_owned() <= LogLevel::Info as i32 {
-        println!("{}", s);
+    if LogLevelConf::get().to_owned() <= LogLevel::Debug as i32 {
+        println!("{} {}", "[LOG]".blue(), s);
     }
 }
 
@@ -20,9 +22,20 @@ macro_rules! log {
     ($($arg:tt)*) => (crate::util::logger::__log(&format!($($arg)*)))
 }
 
+pub fn __info(s: &str) {
+    if LogLevelConf::get().to_owned() <= LogLevel::Info as i32 {
+        println!("{} {}", "[INFO]".green(), s);
+    }
+}
+
+#[macro_export]
+macro_rules! info {
+    ($($arg:tt)*) => (crate::util::logger::__info(&format!($($arg)*)))
+}
+
 pub fn __warn(s: &str) {
     if LogLevelConf::get().to_owned() <= LogLevel::Warn as i32 {
-        eprintln!("{}", s);
+        eprintln!("{} {}", "[WARN]".yellow(), s);
     }
 }
 
@@ -33,7 +46,7 @@ macro_rules! warn {
 
 pub fn __err(s: &str) {
     if LogLevelConf::get().to_owned() <= LogLevel::Error as i32 {
-        eprintln!("{}", s);
+        eprintln!("{} {}", "[ERROR]".red(), s);
     }
 }
 

@@ -1,6 +1,6 @@
 use std::{any::Any, fs::File, io::Write};
 
-use crate::util::anybase::AnyBase;
+use crate::{info, util::anybase::AnyBase};
 
 use super::tty::{DynTty, Tty, WrapperTty};
 
@@ -12,6 +12,7 @@ pub struct Tee {
 
 impl Tee {
     pub fn build(inner: DynTty, path: &str) -> Tee {
+        info!("Teeing to file {}...", path);
         Tee {
             inner,
             file: File::create(path).unwrap(),
@@ -44,7 +45,7 @@ impl Tty for Tee {
     }
     fn write(&mut self, data: &[u8]) -> Result<(), Box<dyn std::error::Error>> {
         self.inner.write(data)?; 
-        // self.file.write_all(data)?; // tee should not write to file
+        self.file.write_all(data)?; // tee should not write to file, but for log purpose...
         Ok(())
     }
 }

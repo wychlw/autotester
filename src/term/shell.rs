@@ -1,5 +1,7 @@
 use std::{
     any::Any,
+    collections::HashMap,
+    env,
     error::Error,
     io::{BufReader, ErrorKind, Read, Write},
     process::{ChildStdin, Command, Stdio},
@@ -8,10 +10,7 @@ use std::{
     time::Duration,
 };
 
-use crate::{log, err, 
-    consts::SHELL_DURATION,
-    util::anybase::AnyBase,
-};
+use crate::{consts::SHELL_DURATION, err, info, log, util::anybase::AnyBase};
 
 use super::tty::Tty;
 
@@ -23,13 +22,25 @@ pub struct Shell {
 }
 
 impl Shell {
+    /**
+     * This implementation method is DEFINITELY needs to be changed in the future,
+     * at least need to use a stty to let shell HAPPY.
+     * But for now... Well, it works.
+     * I've already spent too much time trying to make this thing work... Just move on.
+     * For now.
+     */
     pub fn build(shell: Option<&str>) -> Result<Shell, Box<dyn Error>> {
         let shell = shell.unwrap_or("/bin/sh");
 
-        log!("Spawn shell process: {}", shell);
+        info!("Spawn shell process: {}", shell);
 
-        let inner = Command::new("stdbuf")
-            .args(&["-oL", "-eL", shell,])
+        let filtered_env: HashMap<String, String> = env::vars()
+            .filter(|&(ref k, _)| k == "TERM" || k == "TZ" || k == "LANG" || k == "PATH")
+            .collect();
+
+        let inner = Command::new(shell)
+            .envs(&filtered_env)
+            .envs(Into::<HashMap<_, _>>::into([("PS1", r"[\u@\h \W]\$")]))
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
@@ -45,7 +56,10 @@ impl Shell {
             err!("Failed to get stdin of shell process.");
             return Err(Box::<dyn Error>::from(""));
         }
-        let stdin = stdin.unwrap();
+        let mut stdin = stdin.unwrap();
+        stdin
+            .write_all(b"export PS1=\"[\\u@\\h \\W]\\$\"\n")
+            .unwrap();
 
         let stdout = inner.stdout.take();
         if let None = stdout {
@@ -60,9 +74,7 @@ impl Shell {
             return Err(Box::<dyn Error>::from(""));
         }
         let stderr = stderr.unwrap();
-        let stdout = stdout.chain(stderr);
-
-        let mut reader = BufReader::new(stdout);
+        let mut stdout = stdout.chain(stderr);
 
         let mut res = Shell {
             stdin,
@@ -83,7 +95,7 @@ impl Shell {
                 }
             }
             let mut buf = [0u8];
-            let sz = reader.read(&mut buf);
+            let sz = stdout.read(&mut buf);
             if let Err(e) = sz {
                 err!("Read from shell process failed. Reason: {}", e);
                 break;
@@ -92,7 +104,9 @@ impl Shell {
                 continue;
             }
             let mut buff = buff_clone.lock().unwrap();
-            buff.extend_from_slice(&buf);
+            if buf[0] != 0x0 {
+                buff.extend_from_slice(&buf);
+            }
         });
 
         res.handle = Some(handle);

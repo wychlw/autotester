@@ -1,11 +1,20 @@
 use std::{
-    any::Any, collections::HashMap, error::Error, sync::{Arc, Mutex}, thread::{sleep, spawn, JoinHandle}, time::{Duration, SystemTime}
+    any::Any,
+    collections::HashMap,
+    error::Error,
+    sync::{Arc, Mutex},
+    thread::{sleep, spawn, JoinHandle},
+    time::{Duration, SystemTime},
 };
 
 use asciicast::{Entry, EventType, Header};
 use serde_json::to_string;
 
-use crate::{consts::{DURATION, SHELL_PROMPT}, util::anybase::AnyBase};
+use crate::{
+    consts::{DURATION, SHELL_PROMPT},
+    info,
+    util::anybase::AnyBase,
+};
 
 use super::{
     recorder::Recorder,
@@ -88,6 +97,8 @@ impl Asciicast {
 
         res.thread = Some(thread);
 
+        info!("Create a Asciicast recorder to record.");
+
         res
     }
 }
@@ -166,8 +177,7 @@ impl Tty for Asciicast {
     }
 }
 
-impl WrapperTty for Asciicast
-{
+impl WrapperTty for Asciicast {
     fn exit(self) -> DynTty {
         let mut inner = self.inner.lock().unwrap();
         let inner = inner.take().unwrap();
@@ -175,8 +185,7 @@ impl WrapperTty for Asciicast
     }
 }
 
-impl Recorder for Asciicast
-{
+impl Recorder for Asciicast {
     fn begin(&mut self) -> Result<(), Box<dyn Error>> {
         let logged = self.logged.lock();
         if let Err(_) = logged {
@@ -199,6 +208,9 @@ impl Recorder for Asciicast
         }
         let mut begin = begin.unwrap();
         *begin = true;
+
+        info!("Asciicast begin to record.");
+
         Ok(())
     }
 
@@ -228,6 +240,9 @@ impl Recorder for Asciicast
             res += "\n";
         }
         res += "\n";
+
+        info!("Asciicast end recording...");
+
         Ok(res)
     }
 
@@ -241,6 +256,9 @@ impl Recorder for Asciicast
         }
         let mut begin = begin.unwrap();
         *begin = true;
+
+        info!("Asciicast continue recording...");
+
         Ok(())
     }
 
@@ -254,6 +272,9 @@ impl Recorder for Asciicast
         }
         let mut begin = begin.unwrap();
         *begin = false;
+
+        info!("Asciicast pause recording...");
+
         Ok(())
     }
 
