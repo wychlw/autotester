@@ -1,0 +1,45 @@
+"""
+For board banana pi f3
+"""
+
+from time import sleep
+from tester import PyTty, PySerial, PySdWirec, PyExec
+
+
+class BPiF3:
+    """
+    Board class for Banana Pi F3.
+    """
+
+    def __init__(self, sdwirec_port="id = 0\n", serial_port="/dev/ttyUSB0", baud=115200) -> None:
+        self.sdwirec = PySdWirec(sdwirec_port)
+        self.serial_port = serial_port
+        self.baud = baud
+
+    def flash(self, shell: PyExec, img: str, dsk="/dev/sda"):
+        """
+        Flash the board with given image.
+        """
+        self.sdwirec.to_ts()
+        sleep(0.5)
+        shell.assert_script_sudo(
+            f"dd if={img} of={dsk} bs=1M status=progress", 600)
+        sleep(0.5)
+        self.sdwirec.to_dut()
+        sleep(0.5)
+
+    def power_cycle(self):
+        """
+        Power cycle the board.
+        Now we don't have a very good way though...
+        Maybe some relay or something?
+        But for now, manually power cycle the board.
+        """
+        input("Please power cycle the board and press enter to continue.")
+
+    def get_console(self) -> PyTty:
+        """
+        Get the console of the board.
+        """
+        tty = PySerial(self.serial_port, self.baud)
+        return tty
