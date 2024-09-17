@@ -1,22 +1,26 @@
+use ptyprocess::{stream::Stream, PtyProcess};
+use std::io::{BufRead, BufReader, Read};
+use std::ops::DerefMut;
+use std::os::fd::AsRawFd;
 use std::{
     any::Any,
-    collections::HashMap,
-    env,
     error::Error,
-    io::{ErrorKind, Read, Write},
-    process::{ChildStdin, Command, Stdio},
+    io::Write,
+    process::Command,
     sync::{Arc, Mutex},
     thread::{sleep, spawn, JoinHandle},
     time::Duration,
 };
 
+use crate::util::util::try_read;
 use crate::{consts::SHELL_DURATION, err, info, log, util::anybase::AnyBase};
 
 use super::tty::Tty;
 
 pub struct Shell {
-    stdin: ChildStdin,
+    inner: Arc<Mutex<Stream>>,
     buff: Arc<Mutex<Vec<u8>>>,
+    proc: PtyProcess,
     handle: Option<JoinHandle<()>>,
     stop: Arc<Mutex<bool>>,
 }
@@ -34,78 +38,59 @@ impl Shell {
 
         info!("Spawn shell process: {}", shell);
 
-        let filtered_env: HashMap<String, String> = env::vars()
-            .filter(|&(ref k, _)| k == "TERM" || k == "TZ" || k == "LANG" || k == "PATH")
-            .collect();
-
-        let inner = Command::new(shell)
-            .envs(&filtered_env)
-            .envs(Into::<HashMap<_, _>>::into([("PS1", r"[\u@\h \W]\$")]))
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .spawn();
+        let mut inner = Command::new(shell);
+        inner.args(&["-i"]);
+        let inner = PtyProcess::spawn(inner);
         if let Err(e) = inner {
             err!("Failed to spawn shell process. Reason: {}", e);
             return Err(Box::new(e));
         }
-        let mut inner = inner.unwrap();
+        let proc = inner.unwrap();
+        let inner = proc.get_pty_stream()?;
 
-        let stdin = inner.stdin.take();
-        if let None = stdin {
-            err!("Failed to get stdin of shell process.");
-            return Err(Box::<dyn Error>::from(""));
-        }
-        let mut stdin = stdin.unwrap();
-        stdin
-            .write_all(b"export PS1=\"[\\u@\\h \\W]\\$\"\n")
-            .unwrap();
+        info!(
+            "Shell process spawned, got streamed... FD: {:?}",
+            inner.as_raw_fd()
+        );
 
-        let stdout = inner.stdout.take();
-        if let None = stdout {
-            err!("Failed to get stdout of shell process.");
-            return Err(Box::<dyn Error>::from(""));
-        }
-        let stdout = stdout.unwrap();
-
-        let stderr = inner.stderr.take();
-        if let None = stderr {
-            err!("Failed to get stderr of shell process.");
-            return Err(Box::<dyn Error>::from(""));
-        }
-        let stderr = stderr.unwrap();
-        let mut stdout = stdout.chain(stderr);
+        let inner = Arc::new(Mutex::new(inner));
 
         let mut res = Shell {
-            stdin,
+            inner,
             buff: Arc::new(Mutex::new(Vec::new())),
+            proc,
             handle: None,
             stop: Arc::new(Mutex::new(false)),
         };
 
-        let buff_clone = res.buff.clone();
-        let stop_clone = res.stop.clone();
+        let buff = res.buff.clone();
+        let stop = res.stop.clone();
+        let stream = res.inner.clone();
         let handle = spawn(move || loop {
             sleep(Duration::from_millis(SHELL_DURATION));
             {
-                let stop = stop_clone.lock().unwrap();
+                let stop: std::sync::MutexGuard<'_, bool> = stop.lock().unwrap();
                 if *stop {
                     log!("Stop shell process");
-                    return;
                 }
             }
-            let mut buf = [0u8];
-            let sz = stdout.read(&mut buf);
-            if let Err(e) = sz {
-                err!("Read from shell process failed. Reason: {}", e);
-                break;
+            let mut buf = Vec::new();
+            {
+                let mut stream = stream.lock().unwrap();
+                let mut reader = BufReader::new(stream.deref_mut());
+                let sz = try_read(&mut reader, &mut buf);
+                if let Err(e) = sz {
+                    err!("Failed to read from shell process. Reason: {}", e);
+                    return;
+                }
+                let sz = sz.unwrap();
+                if sz == 0 {
+                    continue;
+                }
             }
-            if buf[0] == 0x0 {
-                continue;
-            }
-            let mut buff = buff_clone.lock().unwrap();
-            if buf[0] != 0x0 {
-                buff.extend_from_slice(&buf);
+            {
+                let mut buff = buff.lock().unwrap();
+                buff.extend(buf.iter());
             }
         });
 
@@ -126,6 +111,7 @@ impl Shell {
         }
         *stop = true;
         log!("Try to stop shell process");
+        self.proc.exit(false).unwrap();
         // if let Some(handle) = self.handle.take() {
         //     handle.join().unwrap();
         //     self.inner.wait().unwrap();
@@ -184,23 +170,19 @@ impl Tty for Shell {
         return Ok(res);
     }
     fn write(&mut self, data: &[u8]) -> Result<(), Box<dyn Error>> {
-        loop {
-            sleep(Duration::from_millis(SHELL_DURATION));
-            match self.stdin.write_all(data) {
-                Ok(_) => break,
-                Err(e) if e.kind() == ErrorKind::Interrupted => continue,
-                Err(e) => {
-                    err!("Write to shell process failed. Reason: {}", e);
-                    return Err(Box::new(e));
-                }
+        let mut stream = self.inner.lock().unwrap();
+        info!("Shell locked...");
+        match stream.write(data) {
+            Ok(_) => {
+                stream.flush().unwrap();
+                info!("Shell write: {:?}", String::from_utf8_lossy(data));
+                return Ok(());
+            }
+            Err(e) => {
+                err!("Write to shell process failed. Reason: {}", e);
+                return Err(Box::new(e));
             }
         }
-        let res = self.stdin.flush();
-        if let Err(e) = res {
-            err!("Flush to shell process failed. Reason: {}", e);
-            return Err(Box::<dyn Error>::from(e));
-        }
-        return Ok(());
     }
 }
 

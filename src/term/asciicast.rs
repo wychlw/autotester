@@ -11,7 +11,7 @@ use asciicast::{Entry, EventType, Header};
 use serde_json::to_string;
 
 use crate::{
-    consts::{DURATION, SHELL_PROMPT},
+    consts::DURATION,
     info,
     util::anybase::AnyBase,
 };

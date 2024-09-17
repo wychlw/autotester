@@ -45,7 +45,7 @@ impl Tty for Tee {
     }
     fn write(&mut self, data: &[u8]) -> Result<(), Box<dyn std::error::Error>> {
         self.inner.write(data)?; 
-        self.file.write_all(data)?; // tee should not write to file, but for log purpose...
+        // self.file.write_all(data)?; // tee should not write to file, but for log purpose...
         Ok(())
     }
 }
