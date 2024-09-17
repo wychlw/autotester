@@ -28,9 +28,9 @@ impl Serial {
 
         info!("Serial port opened: {} at baud rate {}", port, baud);
 
-        return Ok(Serial {
+        Ok(Serial {
             inner: inner.unwrap(),
-        });
+        })
     }
 }
 
@@ -109,6 +109,6 @@ impl Tty for Serial {
             }
         }
 
-        return Ok(());
+        Ok(())
     }
 }

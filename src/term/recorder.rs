@@ -1,6 +1,6 @@
 use std::{any::Any, error::Error, mem::replace};
 
-use crate::{consts::SHELL_PROMPT, info, term::tty::Tty, util::anybase::AnyBase};
+use crate::{info, term::tty::Tty, util::anybase::AnyBase};
 
 use super::tty::{DynTty, WrapperTty};
 
@@ -47,45 +47,27 @@ impl AnyBase for SimpleRecorder {
 
 impl Tty for SimpleRecorder {
     fn read(&mut self) -> Result<Vec<u8>, Box<dyn Error>> {
-        let data = self.inner.read();
-        if let Err(e) = data {
-            return Err(e);
-        }
-        let data = data.unwrap();
+        let data = self.inner.read()?;
 
         if self.begin {
             self.logged.extend(data.clone());
         }
 
-        return Ok(data);
+        Ok(data)
     }
     fn read_line(&mut self) -> Result<Vec<u8>, Box<dyn Error>> {
-        let data = self.inner.read_line();
-        if let Err(e) = data {
-            return Err(e);
-        }
-        let data = data.unwrap();
+        let data = self.inner.read_line()?;
 
         if self.begin {
             self.logged.extend(data.clone());
         }
 
-        return Ok(data);
+        Ok(data)
     }
     fn write(&mut self, data: &[u8]) -> Result<(), Box<dyn Error>> {
-        let res = self.inner.write(data);
-        if let Err(e) = res {
-            return Err(e);
-        }
+        self.inner.write(data)?;
 
-        if self.begin {
-            // For echo back:
-            let line = SHELL_PROMPT.as_bytes();
-            self.logged.extend(line);
-            self.logged.extend(data);
-        }
-
-        return Ok(());
+        Ok(())
     }
 }
 
@@ -103,7 +85,7 @@ impl Recorder for SimpleRecorder
 
         info!("Recorder begin to record.");
 
-        return Ok(());
+        Ok(())
     }
 
     fn end(&mut self) -> Result<String, Box<dyn Error>> {
@@ -118,20 +100,20 @@ impl Recorder for SimpleRecorder
 
         info!("Recorder end to record.");
 
-        return Ok(String::from_utf8(logged).unwrap());
+        Ok(String::from_utf8(logged).unwrap())
     }
     fn pause(&mut self) -> Result<(), Box<dyn Error>> {
         self.begin = false;
         info!("Recorder pause for recording...");
-        return Ok(());
+        Ok(())
     }
     fn start(&mut self) -> Result<(), Box<dyn Error>> {
         self.begin = true;
         info!("Recorder continue for recording...");
-        return Ok(());
+        Ok(())
     }
     fn swap(&mut self, target: DynTty) -> Result<DynTty, Box<dyn Error>> {
         let inner = replace(&mut self.inner, target);
-        return Ok(inner);
+        Ok(inner)
     }
 }

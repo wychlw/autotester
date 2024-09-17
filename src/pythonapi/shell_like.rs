@@ -231,7 +231,7 @@ impl PyTty {
         let inner = Box::into_inner(inner);
         let inner = inner.into_any();
 
-        if let Some(_) = inner.downcast_ref::<SimpleRecorder>() {
+        if inner.downcast_ref::<SimpleRecorder>().is_some() {
             let inner = inner.downcast::<SimpleRecorder>().unwrap();
             let inner = inner.exit();
             Ok(PyTty {
@@ -239,7 +239,7 @@ impl PyTty {
                     tty: heap_raw(inner),
                 },
             })
-        } else if let Some(_) = inner.downcast_ref::<Asciicast>() {
+        } else if inner.downcast_ref::<Asciicast>().is_some() {
             let inner = inner.downcast::<Asciicast>().unwrap();
             let inner = inner.exit();
             Ok(PyTty {
@@ -247,7 +247,7 @@ impl PyTty {
                     tty: heap_raw(inner),
                 },
             })
-        } else if let Some(_) = inner.downcast_ref::<Tee>() {
+        } else if inner.downcast_ref::<Tee>().is_some() {
             let inner = inner.downcast::<Tee>().unwrap();
             let inner = inner.exit();
             Ok(PyTty {
@@ -255,7 +255,7 @@ impl PyTty {
                     tty: heap_raw(inner),
                 },
             })
-        } else if let Some(_) = inner.downcast_ref::<CliTester>() {
+        } else if inner.downcast_ref::<CliTester>().is_some() {
             let inner = inner.downcast::<CliTester>().unwrap();
             let inner = inner.exit();
             Ok(PyTty {
@@ -263,7 +263,7 @@ impl PyTty {
                     tty: heap_raw(inner),
                 },
             })
-        } else if let Some(_) = inner.downcast_ref::<SudoCliTester>() {
+        } else if inner.downcast_ref::<SudoCliTester>().is_some() {
             let inner = inner.downcast::<SudoCliTester>().unwrap();
             let inner = inner.exit();
             Ok(PyTty {
@@ -284,12 +284,12 @@ impl PyTty {
         let inner = self.inner.get_mut()?;
         let inner = inner.as_any_mut();
 
-        if let Some(_) = inner.downcast_ref::<SimpleRecorder>() {
+        if inner.downcast_ref::<SimpleRecorder>().is_some() {
             let inner = inner.downcast_mut::<SimpleRecorder>().unwrap();
             inner
                 .begin()
                 .map_err(|e| PyRuntimeError::new_err(e.to_string()))
-        } else if let Some(_) = inner.downcast_ref::<Asciicast>() {
+        } else if inner.downcast_ref::<Asciicast>().is_some() {
             let inner = inner.downcast_mut::<Asciicast>().unwrap();
             inner
                 .begin()
@@ -305,12 +305,12 @@ impl PyTty {
         let inner = self.inner.get_mut()?;
         let inner = inner.as_any_mut();
 
-        if let Some(_) = inner.downcast_ref::<SimpleRecorder>() {
+        if inner.downcast_ref::<SimpleRecorder>().is_some() {
             let inner = inner.downcast_mut::<SimpleRecorder>().unwrap();
             inner
                 .end()
                 .map_err(|e| PyRuntimeError::new_err(e.to_string()))
-        } else if let Some(_) = inner.downcast_ref::<Asciicast>() {
+        } else if inner.downcast_ref::<Asciicast>().is_some() {
             let inner = inner.downcast_mut::<Asciicast>().unwrap();
             inner
                 .end()
@@ -326,12 +326,12 @@ impl PyTty {
         let inner = self.inner.get_mut()?;
         let inner = inner.as_any_mut();
 
-        if let Some(_) = inner.downcast_ref::<SimpleRecorder>() {
+        if inner.downcast_ref::<SimpleRecorder>().is_some() {
             let inner = inner.downcast_mut::<SimpleRecorder>().unwrap();
             inner
                 .start()
                 .map_err(|e| PyRuntimeError::new_err(e.to_string()))
-        } else if let Some(_) = inner.downcast_ref::<Asciicast>() {
+        } else if inner.downcast_ref::<Asciicast>().is_some() {
             let inner = inner.downcast_mut::<Asciicast>().unwrap();
             inner
                 .start()
@@ -347,12 +347,12 @@ impl PyTty {
         let inner = self.inner.get_mut()?;
         let inner = inner.as_any_mut();
 
-        if let Some(_) = inner.downcast_ref::<SimpleRecorder>() {
+        if inner.downcast_ref::<SimpleRecorder>().is_some() {
             let inner = inner.downcast_mut::<SimpleRecorder>().unwrap();
             inner
                 .pause()
                 .map_err(|e| PyRuntimeError::new_err(e.to_string()))
-        } else if let Some(_) = inner.downcast_ref::<Asciicast>() {
+        } else if inner.downcast_ref::<Asciicast>().is_some() {
             let inner = inner.downcast_mut::<Asciicast>().unwrap();
             inner
                 .pause()
@@ -368,7 +368,7 @@ impl PyTty {
         let inner = self.inner.get_mut()?;
         let inner = inner.as_any_mut();
 
-        if let Some(_) = inner.downcast_ref::<SimpleRecorder>() {
+        if inner.downcast_ref::<SimpleRecorder>().is_some() {
             let inner = inner.downcast_mut::<SimpleRecorder>().unwrap();
             let target = other.inner.safe_take()?;
             let target = Box::into_inner(target);
@@ -379,7 +379,7 @@ impl PyTty {
             let target = target.unwrap();
             other.inner.tty = heap_raw(target);
             Ok(())
-        } else if let Some(_) = inner.downcast_ref::<Asciicast>() {
+        } else if inner.downcast_ref::<Asciicast>().is_some() {
             let inner = inner.downcast_mut::<Asciicast>().unwrap();
             let target = other.inner.safe_take()?;
             let target = Box::into_inner(target);
@@ -403,7 +403,7 @@ impl PyTty {
         let inner = Box::into_inner(inner);
         let inner = inner.into_any();
 
-        if let Some(_) = inner.downcast_ref::<PyTtyHook>() {
+        if inner.downcast_ref::<PyTtyHook>().is_some() {
             let inner = inner.downcast::<PyTtyHook>().unwrap();
             let res = inner.inner;
             Ok(res)

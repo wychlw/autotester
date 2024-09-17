@@ -20,12 +20,10 @@ macro_rules! unfinished {
 }
 
 pub fn rand_string(len: usize) -> Vec<u8> {
-    let rnd = thread_rng()
+    thread_rng()
         .sample_iter(&Alphanumeric)
         .take(len)
-        .collect::<Vec<u8>>();
-
-    rnd
+        .collect::<Vec<u8>>()
 }
 
 pub fn try_read<R: BufRead + ?Sized>(

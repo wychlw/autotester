@@ -18,10 +18,9 @@ pub fn build_ttyhook(inner: Py<PyAny>) -> PyTty {
     let inner = PyTtyWrapper {
         tty: heap_raw(inner)
     };
-    let res = PyTty {
+    PyTty {
         inner
-    };
-    res
+    }
 }
 
 pub struct PyTtyHook {

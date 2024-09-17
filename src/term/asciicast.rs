@@ -71,7 +71,7 @@ impl Asciicast {
             }
             let inner = inner.as_mut().unwrap();
             let new_data = inner.read();
-            if let Err(_) = new_data {
+            if new_data.is_err() {
                 return;
             }
             let new_data = new_data.unwrap();
@@ -118,14 +118,14 @@ impl AnyBase for Asciicast {
 impl Tty for Asciicast {
     fn read(&mut self) -> Result<Vec<u8>, Box<dyn Error>> {
         let data = self.data.lock();
-        if let Err(_) = data {
+        if data.is_err() {
             return Err(Box::<dyn Error>::from("Read from Asciicast failed."));
         }
         let mut data = data.unwrap();
         let res = data.clone();
         data.clear();
 
-        return Ok(res);
+        Ok(res)
     }
     fn read_line(&mut self) -> Result<Vec<u8>, Box<dyn Error>> {
         let mut res = Vec::new();
@@ -141,11 +141,11 @@ impl Tty for Asciicast {
                 break;
             }
         }
-        return Ok(res);
+        Ok(res)
     }
     fn write(&mut self, data: &[u8]) -> Result<(), Box<dyn Error>> {
         // let begin = self.begin.lock();
-        // if let Err(_) = begin {
+        // if begin.is_err() {
         //     return Err(Box::<dyn Error>::from("Recorder not started."));
         // }
         // let begin = begin.unwrap();
@@ -172,9 +172,7 @@ impl Tty for Asciicast {
             return Err(Box::<dyn Error>::from("You've already exited."));
         }
         let inner = inner.as_mut().unwrap();
-        let res = inner.write(data);
-
-        res
+        inner.write(data)
     }
 }
 
@@ -182,15 +180,14 @@ impl WrapperTty for Asciicast {
     fn exit(self) -> DynTty {
         let inner = self.inner.clone();
         let mut inner = inner.lock().unwrap();
-        let inner = inner.take().unwrap();
-        inner
+        inner.take().unwrap()
     }
 }
 
 impl Recorder for Asciicast {
     fn begin(&mut self) -> Result<(), Box<dyn Error>> {
         let logged = self.logged.lock();
-        if let Err(_) = logged {
+        if logged.is_err() {
             return Err(Box::<dyn Error>::from("Recorder not started."));
         }
         let mut logged = logged.unwrap();
@@ -198,14 +195,14 @@ impl Recorder for Asciicast {
 
         let time = SystemTime::now();
         let begin_time = self.begin_time.lock();
-        if let Err(_) = begin_time {
+        if begin_time.is_err() {
             return Err(Box::<dyn Error>::from("Recorder not started."));
         }
         let mut begin_time = begin_time.unwrap();
         *begin_time = time;
 
         let begin = self.begin.lock();
-        if let Err(_) = begin {
+        if begin.is_err() {
             return Err(Box::<dyn Error>::from("Recorder not started."));
         }
         let mut begin = begin.unwrap();
@@ -218,7 +215,7 @@ impl Recorder for Asciicast {
 
     fn end(&mut self) -> Result<String, Box<dyn Error>> {
         let begin = self.begin.lock();
-        if let Err(_) = begin {
+        if begin.is_err() {
             return Err(Box::<dyn Error>::from("Recorder not started."));
         }
         let mut begin = begin.unwrap();
@@ -228,7 +225,7 @@ impl Recorder for Asciicast {
         *begin = false;
         let mut res = String::new();
         let logged = self.logged.lock();
-        if let Err(_) = logged {
+        if logged.is_err() {
             return Err(Box::<dyn Error>::from("Recorder not started."));
         }
         let logged = logged.unwrap();

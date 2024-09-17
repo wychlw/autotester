@@ -65,12 +65,12 @@ impl PyExec {
 
         let timeout = timeout.unwrap_or(30);
 
-        if let Some(_) = inner.downcast_ref::<CliTester>() {
+        if inner.downcast_ref::<CliTester>().is_some() {
             let inner = inner.downcast_mut::<CliTester>().unwrap();
             inner
                 .script_run(script, timeout)
                 .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
-        } else if let Some(_) = inner.downcast_ref::<SudoCliTester>() {
+        } else if inner.downcast_ref::<SudoCliTester>().is_some() {
             let inner = inner.downcast_mut::<SudoCliTester>().unwrap();
             inner
                 .script_run(script, timeout)
@@ -95,12 +95,12 @@ impl PyExec {
 
         let timeout = timeout.unwrap_or(30);
 
-        if let Some(_) = inner.downcast_ref::<CliTester>() {
+        if inner.downcast_ref::<CliTester>().is_some() {
             let inner = inner.downcast_mut::<CliTester>().unwrap();
             inner
                 .assert_script_run(script, timeout)
                 .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
-        } else if let Some(_) = inner.downcast_ref::<SudoCliTester>() {
+        } else if inner.downcast_ref::<SudoCliTester>().is_some() {
             let inner = inner.downcast_mut::<SudoCliTester>().unwrap();
             inner
                 .assert_script_run(script, timeout)
@@ -118,12 +118,12 @@ impl PyExec {
         let inner = self_.inner.get_mut()?;
         let inner = inner.as_any_mut();
 
-        if let Some(_) = inner.downcast_ref::<CliTester>() {
+        if inner.downcast_ref::<CliTester>().is_some() {
             let inner = inner.downcast_mut::<CliTester>().unwrap();
             inner
                 .background_script_run(script)
                 .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
-        } else if let Some(_) = inner.downcast_ref::<SudoCliTester>() {
+        } else if inner.downcast_ref::<SudoCliTester>().is_some() {
             let inner = inner.downcast_mut::<SudoCliTester>().unwrap();
             inner
                 .background_script_run(script)
@@ -141,12 +141,12 @@ impl PyExec {
         let inner = self_.inner.get_mut()?;
         let inner = inner.as_any_mut();
 
-        if let Some(_) = inner.downcast_ref::<CliTester>() {
+        if inner.downcast_ref::<CliTester>().is_some() {
             let inner = inner.downcast_mut::<CliTester>().unwrap();
             inner
                 .writeln(script)
                 .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
-        } else if let Some(_) = inner.downcast_ref::<SudoCliTester>() {
+        } else if inner.downcast_ref::<SudoCliTester>().is_some() {
             let inner = inner.downcast_mut::<SudoCliTester>().unwrap();
             inner
                 .writeln(script)
@@ -171,12 +171,12 @@ impl PyExec {
 
         let timeout = timeout.unwrap_or(30);
 
-        if let Some(_) = inner.downcast_ref::<CliTester>() {
+        if inner.downcast_ref::<CliTester>().is_some() {
             let inner = inner.downcast_mut::<CliTester>().unwrap();
             inner
                 .wait_serial(expected, timeout)
                 .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
-        } else if let Some(_) = inner.downcast_ref::<SudoCliTester>() {
+        } else if inner.downcast_ref::<SudoCliTester>().is_some() {
             let inner = inner.downcast_mut::<SudoCliTester>().unwrap();
             inner
                 .wait_serial(expected, timeout)
@@ -201,7 +201,7 @@ impl PyExec {
 
         let timeout = timeout.unwrap_or(30);
 
-        if let Some(_) = inner.downcast_ref::<SudoCliTester>() {
+        if inner.downcast_ref::<SudoCliTester>().is_some() {
             let inner = inner.downcast_mut::<SudoCliTester>().unwrap();
             inner
                 .script_sudo(script, timeout)
@@ -226,7 +226,7 @@ impl PyExec {
 
         let timeout = timeout.unwrap_or(30);
 
-        if let Some(_) = inner.downcast_ref::<SudoCliTester>() {
+        if inner.downcast_ref::<SudoCliTester>().is_some() {
             let inner = inner.downcast_mut::<SudoCliTester>().unwrap();
             inner
                 .assert_script_sudo(script, timeout)

@@ -24,11 +24,7 @@ impl CliTester {
 impl CliTester {
     fn run_command(&mut self, command: &String) -> Result<(), Box<dyn Error>> {
         info!("Write to shell: {}", command);
-        let res = self.inner.write(command.as_bytes());
-        if let Err(e) = res {
-            return Err(e);
-        }
-        Ok(())
+        self.inner.write(command.as_bytes())
     }
 }
 
@@ -81,12 +77,8 @@ impl CliTestApi for CliTester {
         info!("Waiting for string {{{}}}", expected);
         loop {
             sleep(Duration::from_millis(DURATION));
-            let res = self.inner.read();
-            if let Err(e) = res {
-                return Err(e);
-            }
-            let line = res.unwrap();
-            buf.extend_from_slice(&line);
+            let res = self.inner.read()?;
+            buf.extend_from_slice(&res);
             let content = String::from_utf8(buf.clone()).unwrap_or_default();
             if content.contains(expected) {
                 info!("Matched string {{{}}}", expected);
@@ -112,10 +104,7 @@ impl CliTestApi for CliTester {
         cmd += &echo_content_rand;
         cmd += " \n";
 
-        let res = self.run_command(&cmd);
-        if let Err(e) = res {
-            return Err(e);
-        }
+        self.run_command(&cmd)?;
 
         let res = self.wait_serial(&echo_content_rand, timeout);
         if let Err(e) = res {
@@ -124,7 +113,7 @@ impl CliTestApi for CliTester {
             }
             return Err(e);
         }
-        res
+        Ok(())
     }
     fn assert_script_run(&mut self, script: &str, timeout: u32) -> Result<(), Box<dyn Error>> {
         let mut cmd = script.to_owned();
@@ -134,13 +123,10 @@ impl CliTestApi for CliTester {
         cmd += &echo_content_rand;
         cmd += " \n";
 
-        let res = self.run_command(&cmd);
-        if let Err(e) = res {
-            return Err(e);
-        }
+        self.run_command(&cmd)?;
 
-        let res = self.wait_serial(&echo_content_rand, timeout);
-        res
+        self.wait_serial(&echo_content_rand, timeout)?;
+        Ok(())
     }
     fn background_script_run(&mut self, script: &str) -> Result<(), Box<dyn Error>> {
         let mut cmd = script.to_owned();

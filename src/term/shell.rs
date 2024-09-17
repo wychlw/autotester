@@ -1,5 +1,5 @@
 use ptyprocess::{stream::Stream, PtyProcess};
-use std::io::{BufRead, BufReader, Read};
+use std::io::BufReader;
 use std::ops::DerefMut;
 use std::os::fd::AsRawFd;
 use std::{
@@ -26,20 +26,13 @@ pub struct Shell {
 }
 
 impl Shell {
-    /**
-     * This implementation method is DEFINITELY needs to be changed in the future,
-     * at least need to use a stty to let shell HAPPY.
-     * But for now... Well, it works.
-     * I've already spent too much time trying to make this thing work... Just move on.
-     * For now.
-     */
     pub fn build(shell: Option<&str>) -> Result<Shell, Box<dyn Error>> {
         let shell = shell.unwrap_or("/bin/sh");
 
         info!("Spawn shell process: {}", shell);
 
         let mut inner = Command::new(shell);
-        inner.args(&["-i"]);
+        inner.args(["-i"]);
         let inner = PtyProcess::spawn(inner);
         if let Err(e) = inner {
             err!("Failed to spawn shell process. Reason: {}", e);
@@ -144,7 +137,7 @@ impl Tty for Shell {
         if !res.is_empty() {
             log!("Shell read: {:?}", String::from_utf8_lossy(&res));
         }
-        return Ok(res);
+        Ok(res)
     }
     fn read_line(&mut self) -> Result<Vec<u8>, Box<dyn Error>> {
         let mut res = Vec::new();
@@ -167,20 +160,20 @@ impl Tty for Shell {
                 break;
             }
         }
-        return Ok(res);
+        Ok(res)
     }
     fn write(&mut self, data: &[u8]) -> Result<(), Box<dyn Error>> {
         let mut stream = self.inner.lock().unwrap();
         info!("Shell locked...");
-        match stream.write(data) {
+        match stream.write_all(data) {
             Ok(_) => {
                 stream.flush().unwrap();
                 info!("Shell write: {:?}", String::from_utf8_lossy(data));
-                return Ok(());
+                Ok(())
             }
             Err(e) => {
                 err!("Write to shell process failed. Reason: {}", e);
-                return Err(Box::new(e));
+                Err(Box::new(e))
             }
         }
     }

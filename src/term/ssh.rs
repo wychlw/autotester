@@ -190,6 +190,6 @@ impl Tty for Ssh {
             err!("Flush to shell process failed. Reason: {}", e);
             return Err(Box::<dyn Error>::from(e));
         }
-        return Ok(());
+        Ok(())
     }
 }

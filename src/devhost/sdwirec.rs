@@ -74,11 +74,7 @@ impl Sdwirec {
         cmd += &self.format_device(chooser);
         cmd += "-u";
 
-        let res = self.try_run(&cmd);
-        if let Err(e) = res {
-            return Err(e);
-        }
-        let res = res.unwrap();
+        let res = self.try_run(&cmd)?;
         if !res.status.success() {
             return Err(Box::new(std::io::Error::new(
                 std::io::ErrorKind::Other,
@@ -96,14 +92,14 @@ impl Sdwirec {
          */
         let res = String::from_utf8(res.stdout).unwrap();
         if res.contains("SD connected to: TS") {
-            return Ok(SdwirecStat::TS);
+            Ok(SdwirecStat::TS)
         } else if res.contains("SD connected to: DUT") {
-            return Ok(SdwirecStat::DUT);
+            Ok(SdwirecStat::DUT)
         } else {
-            return Err(Box::new(std::io::Error::new(
+            Err(Box::new(std::io::Error::new(
                 std::io::ErrorKind::Other,
                 format!("Failed to get status of device. Reason: {}", res),
-            )));
+            )))
         }
     }
 
@@ -116,11 +112,7 @@ impl Sdwirec {
         cmd += &self.format_device(chooser);
         cmd += "-ts";
 
-        let res = self.try_run(&cmd);
-        if let Err(e) = res {
-            return Err(e);
-        }
-        let res = res.unwrap();
+        let res = self.try_run(&cmd)?;
         if !res.status.success() {
             return Err(Box::new(std::io::Error::new(
                 std::io::ErrorKind::Other,
@@ -143,11 +135,7 @@ impl Sdwirec {
         cmd += &self.format_device(chooser);
         cmd += "-d";
 
-        let res = self.try_run(&cmd);
-        if let Err(e) = res {
-            return Err(e);
-        }
-        let res = res.unwrap();
+        let res = self.try_run(&cmd)?;
         if !res.status.success() {
             return Err(Box::new(std::io::Error::new(
                 std::io::ErrorKind::Other,
