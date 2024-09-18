@@ -5,7 +5,7 @@ use pyo3::{
 };
 
 use crate::{
-    term::tty::Tty,
+    cli::tty::Tty,
     util::anybase::{heap_raw, AnyBase},
 };
 

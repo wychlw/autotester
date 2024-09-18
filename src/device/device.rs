@@ -2,7 +2,7 @@
 
 use std::error::Error;
 
-use crate::term::{ssh::SshPass, tty::DynTty};
+use crate::cli::{ssh::SshPass, tty::DynTty};
 
 
 struct ShellOptions {

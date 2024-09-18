@@ -1,7 +1,8 @@
 #![feature(box_into_inner)]
 
 pub mod consts;
-pub mod term;
+pub mod cli;
+pub mod gui;
 pub mod exec {
     pub mod cli_api;
     pub mod cli_exec;

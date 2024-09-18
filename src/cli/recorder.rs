@@ -1,6 +1,6 @@
 use std::{any::Any, error::Error, mem::replace};
 
-use crate::{info, term::tty::Tty, util::anybase::AnyBase};
+use crate::{info, cli::tty::Tty, util::anybase::AnyBase};
 
 use super::tty::{DynTty, WrapperTty};
 

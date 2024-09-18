@@ -12,7 +12,7 @@ pub struct ShellConf {
 
 pub fn handle_shell(inner: &mut Option<PyTtyWrapper>, shell_conf: ShellConf) -> PyResult<()> {
     let shell = shell_conf.shell.as_deref();
-    let shell = crate::term::shell::Shell::build(shell)
+    let shell = crate::cli::shell::Shell::build(shell)
         .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
     if inner.is_some() {
         return Err(PyRuntimeError::new_err(
@@ -34,7 +34,7 @@ impl Shell {
     #[new]
     #[pyo3(signature = (shell=None))]
     fn py_new(shell: Option<&str>) -> PyResult<(Self, PyTty)> {
-        let shell = crate::term::shell::Shell::build(shell)
+        let shell = crate::cli::shell::Shell::build(shell)
             .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
         let shell = Box::new(shell) as TtyType;
         Ok((

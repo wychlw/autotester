@@ -1,6 +1,6 @@
 use std::error::Error;
 
-use crate::term::tty::InnerTty;
+use crate::cli::tty::InnerTty;
 
 pub trait CliTestApi: InnerTty {
     fn script_run(&mut self, script: &str, timeout: u32) -> Result<(), Box<dyn Error>>;

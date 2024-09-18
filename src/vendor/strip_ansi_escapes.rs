@@ -1,4 +1,4 @@
-//! Originally from https://github.com/luser/strip-ansi-escapes
+//! Originally from <https://github.com/luser/strip-ansi-escapes>
 //! License: MIT/Apache-2.0
 //! A crate for stripping ANSI escape sequences from byte sequences.
 //!

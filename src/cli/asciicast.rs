@@ -1,3 +1,8 @@
+//! Asciicast recorder.
+//! 
+//! The Asciicast recorder is a recorder that records the terminal output
+//! in the asciicast v2 format.
+
 use std::{
     any::Any,
     collections::HashMap,
@@ -144,28 +149,6 @@ impl Tty for Asciicast {
         Ok(res)
     }
     fn write(&mut self, data: &[u8]) -> Result<(), Box<dyn Error>> {
-        // let begin = self.begin.lock();
-        // if begin.is_err() {
-        //     return Err(Box::<dyn Error>::from("Recorder not started."));
-        // }
-        // let begin = begin.unwrap();
-        // if *begin {
-        //     let begin_time = self.begin_time.lock().unwrap();
-        //     let time = begin_time.elapsed().unwrap();
-        //     let timestamp = time.as_millis();
-        //     let timestamp = timestamp as f64 / 1000.0;
-        //     let mut logged = self.logged.lock().unwrap();
-        //     let line = String::from_utf8(data.to_vec()).unwrap();
-        //     let line = SHELL_PROMPT.to_string() + &line;
-        //     let line = line.replace("\\n", "\\r\\n");
-        //     logged.push(Entry {
-        //         time: timestamp,
-        //         // event_type: EventType::Input,
-        //         event_type: EventType::Output,
-        //         event_data: line,
-        //     });
-        // }
-
         let inner = self.inner.clone();
         let mut inner = inner.lock().unwrap();
         if inner.is_none() {

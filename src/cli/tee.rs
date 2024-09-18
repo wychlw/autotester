@@ -1,9 +1,22 @@
+//! Tee is a Tty wrapper that writes all output to a file, in addition to passing it to the inner Tty.
+//!
+//! # Example
+//!
+//! ```
+//! let s = Shell::build("bash");
+//! let t = Tee::build(s, "output.log");
+//! t.write(b"echo hello\n");
+//! t.read();
+//! let s = t.exit();
+//! s.exit();
+//! ```
+//!
+
 use std::{any::Any, fs::File, io::Write};
 
 use crate::{info, util::anybase::AnyBase};
 
 use super::tty::{DynTty, Tty, WrapperTty};
-
 
 pub struct Tee {
     inner: DynTty,
@@ -11,6 +24,12 @@ pub struct Tee {
 }
 
 impl Tee {
+    /// Build a new `Tee` instance.
+    ///
+    /// # Arguments
+    ///
+    /// - `inner`: The inner Tty instance.
+    /// - `path`: The path to the file to write to.
     pub fn build(inner: DynTty, path: &str) -> Tee {
         info!("Teeing to file {}...", path);
         Tee {
@@ -44,7 +63,7 @@ impl Tty for Tee {
         Ok(res)
     }
     fn write(&mut self, data: &[u8]) -> Result<(), Box<dyn std::error::Error>> {
-        self.inner.write(data)?; 
+        self.inner.write(data)?;
         // self.file.write_all(data)?; // tee should not write to file, but for log purpose...
         Ok(())
     }
@@ -56,4 +75,3 @@ impl WrapperTty for Tee {
         self.inner
     }
 }
-

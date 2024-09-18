@@ -7,7 +7,7 @@ use crate::{
     exec::{cli_exec::CliTester, cli_exec_sudo::SudoCliTester},
     log,
     pythonapi::{asciicast::handle_asciicast, tee::handle_tee},
-    term::{
+    cli::{
         asciicast::Asciicast, deansi::DeANSI, recorder::{Recorder, SimpleRecorder}, tee::Tee, tty::{DynTty, WrapperTty}
     },
     util::anybase::heap_raw,

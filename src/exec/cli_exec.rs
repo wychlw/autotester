@@ -6,7 +6,7 @@ use std::{
 };
 
 use crate::{
-    consts::DURATION, err, info, term::tty::{DynTty, InnerTty, Tty, WrapperTty}, util::{anybase::AnyBase, util::rand_string}
+    consts::DURATION, err, info, cli::tty::{DynTty, InnerTty, Tty, WrapperTty}, util::{anybase::AnyBase, util::rand_string}
 };
 
 use super::cli_api::CliTestApi;

@@ -1,6 +1,6 @@
 use pyo3::{exceptions::PyRuntimeError, pyclass, pymethods, PyResult};
 
-use crate::{term::tty::Tty, util::anybase::heap_raw};
+use crate::{cli::tty::Tty, util::anybase::heap_raw};
 
 use super::shell_like::{handle_wrap, PyTty, PyTtyWrapper, TtyType};
 
@@ -13,7 +13,7 @@ pub fn handle_deansi(inner: &mut Option<PyTtyWrapper>) -> PyResult<()> {
     let mut be_wrapped = inner.take().unwrap();
     let be_wrapped = be_wrapped.safe_take()?;
     let be_wrapped = Box::into_inner(be_wrapped);
-    let dean = Box::new(crate::term::deansi::DeANSI::build(be_wrapped));
+    let dean = Box::new(crate::cli::deansi::DeANSI::build(be_wrapped));
     let dean: Box<dyn Tty + Send> = dean as TtyType;
     *inner = Some(PyTtyWrapper {
         tty: heap_raw(dean),

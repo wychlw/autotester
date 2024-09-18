@@ -7,7 +7,7 @@ use std::time::Duration;
 use serialport::{self, SerialPort};
 
 use crate::consts::SHELL_DURATION;
-use crate::term::tty::Tty;
+use crate::cli::tty::Tty;
 use crate::util::anybase::AnyBase;
 use crate::{err, info};
 

@@ -12,7 +12,7 @@ impl Serial {
     #[new]
     #[pyo3(signature = (port, baud))]
     fn py_new(port: &str, baud: u32) -> PyResult<(Self, PyTty)> {
-        let serial = crate::term::serial::Serial::build(port, baud)
+        let serial = crate::cli::serial::Serial::build(port, baud)
             .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
         let serial = Box::new(serial) as TtyType;
         Ok((

@@ -1,7 +1,7 @@
 use std::any::Any;
 
 use crate::{
-    term::tty::{DynTty, InnerTty, Tty, WrapperTty},
+    cli::tty::{DynTty, InnerTty, Tty, WrapperTty},
     util::anybase::AnyBase,
 };
 

@@ -13,7 +13,7 @@ pub fn handle_asciicast(inner: &mut Option<PyTtyWrapper>) -> PyResult<()> {
     let mut be_wrapped = inner.take().unwrap();
     let be_wrapped = be_wrapped.safe_take()?;
     let be_wrapped = Box::into_inner(be_wrapped);
-    let tee = Box::new(crate::term::asciicast::Asciicast::build(be_wrapped));
+    let tee = Box::new(crate::cli::asciicast::Asciicast::build(be_wrapped));
     let tee = tee as TtyType;
     *inner = Some(PyTtyWrapper { tty: heap_raw(tee) });
     Ok(())

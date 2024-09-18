@@ -1,5 +1,16 @@
+- [ ]  添加 rustdoc
+    - [ ]  cli
+        - [x]  mod
+        - [ ]  asciicast
+        - [x]  deansi
+        - [ ]  recorder
+        - [ ]  serial
+        - [ ]  shell
+        - [ ]  ssh
+        - [x]  tee
+        - [x]  tty
+
 - [ ] **可维护性：想办法把那个 PyTty 缩小掉……**
-- [ ] Shell 控制命令的 filter
 
 - [ ] 更多的连接方式
     - [x] 更完善的 SSH
