@@ -4,7 +4,7 @@ use serde::Deserialize;
 use crate::{devhost::sdwirec::{SdwirecChooser, SdwirecProd, SdwirecStat}, info};
 
 #[derive(Deserialize)]
-pub struct PySdWirecConf {
+pub struct SdWirecConf {
     pub id: Option<u16>,
     pub serial: Option<String>,
     pub vendor: Option<u16>,
@@ -12,16 +12,16 @@ pub struct PySdWirecConf {
 }
 
 #[pyclass]
-pub struct PySdWirec {
+pub struct SdWirec {
     pub inner: SdwirecProd,
 }
 
 #[pymethods]
-impl PySdWirec {
+impl SdWirec {
     #[new]
     fn py_new(conf: &str) -> PyResult<Self> {
         info!("SdWireC got config: {}", conf);
-        let conf: PySdWirecConf = toml::from_str(conf).unwrap();
+        let conf: SdWirecConf = toml::from_str(conf).unwrap();
         let chooser = if let Some(id) = conf.id {
             SdwirecChooser::Id(id)
         } else if let Some(serial) = conf.serial {
@@ -33,7 +33,7 @@ impl PySdWirec {
         } else {
             return Err(PyRuntimeError::new_err("Invalid chooser"));
         };
-        Ok(PySdWirec {
+        Ok(SdWirec {
             inner: SdwirecProd::new(chooser),
         })
     }

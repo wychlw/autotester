@@ -13,7 +13,7 @@ use super::shell_like::{PyTty, PyTtyWrapper};
 
 #[pyfunction]
 pub fn build_ttyhook(inner: Py<PyAny>) -> PyTty {
-    let inner = PyTtyHook::build(inner);
+    let inner = TtyHook::build(inner);
     let inner = Box::new(inner);
     let inner = PyTtyWrapper {
         tty: heap_raw(inner)
@@ -23,17 +23,17 @@ pub fn build_ttyhook(inner: Py<PyAny>) -> PyTty {
     }
 }
 
-pub struct PyTtyHook {
+pub struct TtyHook {
     pub inner: Py<PyAny>,
 }
 
-impl PyTtyHook {
+impl TtyHook {
     pub fn build(inner: Py<PyAny>) -> Self {
         Self { inner }
     }
 }
 
-impl AnyBase for PyTtyHook {
+impl AnyBase for TtyHook {
     fn as_any(&self) -> &dyn std::any::Any {
         self
     }
@@ -45,7 +45,7 @@ impl AnyBase for PyTtyHook {
     }
 }
 
-impl Tty for PyTtyHook {
+impl Tty for TtyHook {
     fn read(&mut self) -> Result<Vec<u8>, Box<dyn Error>> {
         Python::with_gil(|py| {
             let res = self.inner.call_method0(py, "read")?;

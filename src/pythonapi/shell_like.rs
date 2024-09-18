@@ -6,21 +6,18 @@ use serde::Deserialize;
 use crate::{
     exec::{cli_exec::CliTester, cli_exec_sudo::SudoCliTester},
     log,
-    pythonapi::pytee::handle_tee,
+    pythonapi::{asciicast::handle_asciicast, tee::handle_tee},
     term::{
-        asciicast::Asciicast,
-        recorder::{Recorder, SimpleRecorder},
-        tee::Tee,
-        tty::{DynTty, WrapperTty},
+        asciicast::Asciicast, deansi::DeANSI, recorder::{Recorder, SimpleRecorder}, tee::Tee, tty::{DynTty, WrapperTty}
     },
     util::anybase::heap_raw,
 };
 
 use super::{
-    pyexec::handle_clitester,
-    pyhook::PyTtyHook,
-    pyshell::{handle_shell, PyShellConf},
-    pytee::PyTeeConf,
+    exec::handle_clitester,
+    hook::TtyHook,
+    shell::{handle_shell, ShellConf},
+    tee::PyTeeConf,
 };
 
 pub type TtyType = DynTty;
@@ -79,7 +76,7 @@ impl PyTty {
 struct PyTtyConf {
     // unwrapable
     wrap: Option<bool>,
-    shell: Option<PyShellConf>,
+    shell: Option<ShellConf>,
     tee: Option<PyTeeConf>,
 
     // wrapable
@@ -128,23 +125,6 @@ pub fn handle_simple_recorder(inner: &mut Option<PyTtyWrapper>) -> PyResult<()> 
 
     Ok(())
 }
-pub fn handle_asciicast(inner: &mut Option<PyTtyWrapper>) -> PyResult<()> {
-    if inner.is_none() {
-        return Err(PyRuntimeError::new_err(
-            "You must define at least one valid object",
-        ));
-    }
-    let mut be_wrapped = inner.take().unwrap();
-    let tty = be_wrapped.safe_take()?;
-    let tty = Box::into_inner(tty);
-    let recorder = Box::new(Asciicast::build(tty));
-    let recorder = recorder as TtyType;
-    *inner = Some(PyTtyWrapper {
-        tty: heap_raw(recorder),
-    });
-
-    Ok(())
-}
 
 /**
  * Shell
@@ -152,7 +132,7 @@ pub fn handle_asciicast(inner: &mut Option<PyTtyWrapper>) -> PyResult<()> {
  * Ssh
  * SimpleRecorder
  * Asciicast
- * PyTtyHook
+ * TtyHook
  */
 
 #[pymethods]
@@ -241,6 +221,14 @@ impl PyTty {
             })
         } else if inner.downcast_ref::<Asciicast>().is_some() {
             let inner = inner.downcast::<Asciicast>().unwrap();
+            let inner = inner.exit();
+            Ok(PyTty {
+                inner: PyTtyWrapper {
+                    tty: heap_raw(inner),
+                },
+            })
+        } else if inner.downcast_ref::<DeANSI>().is_some() {
+            let inner = inner.downcast::<DeANSI>().unwrap();
             let inner = inner.exit();
             Ok(PyTty {
                 inner: PyTtyWrapper {
@@ -403,8 +391,8 @@ impl PyTty {
         let inner = Box::into_inner(inner);
         let inner = inner.into_any();
 
-        if inner.downcast_ref::<PyTtyHook>().is_some() {
-            let inner = inner.downcast::<PyTtyHook>().unwrap();
+        if inner.downcast_ref::<TtyHook>().is_some() {
+            let inner = inner.downcast::<TtyHook>().unwrap();
             let res = inner.inner;
             Ok(res)
         } else {

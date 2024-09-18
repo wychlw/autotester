@@ -17,15 +17,15 @@ def default_proc():
     Default procedure for testing.
     """
 
-    local_shell = PyShell("/bin/bash")
-    local_shell = PyTee(local_shell, "run.log")
+    local_shell = Shell("/bin/bash")
+    local_shell = Tee(local_shell, "run.log")
     local_shell.write(b"uname -a\n")
     local_shell.read()
 
-    asciicast = PyAsciicast(local_shell)
+    asciicast = Asciicast(local_shell)
     asciicast.begin()
 
-    e = PyExec(asciicast)
+    e = Exec(asciicast)
 
     board = BPiF3("id = 0\n", "/dev/ttyUSB0", 115200)
 
@@ -49,11 +49,11 @@ def default_proc():
     info("Flash board ended...")
 
     console = board.get_console()
-    console = PyTee(console, "con.log")
+    console = Tee(console, "con.log")
 
     asciicast = e.exit()
     local_shell = swap_tty(asciicast, console)
-    e = PyExec(asciicast)
+    e = Exec(asciicast)
 
     board.power_cycle()
 
@@ -64,9 +64,9 @@ def default_proc():
     system.loggin()
 
     asciicast = e.exit()
-    logger = PyTty("wrap=true\nsimple_recorder=true\n", asciicast)
+    logger = Tty("wrap=true\nsimple_recorder=true\n", asciicast)
     logger.begin()
-    e = PyExec(logger)
+    e = Exec(logger)
     system.tty = e
 
     system.get_info()

@@ -1,7 +1,7 @@
 use pyo3::{exceptions::PyRuntimeError, pyclass, pymethods, PyResult};
 use serde::Deserialize;
 
-use crate::{term::tee::Tee, util::anybase::heap_raw};
+use crate::{term::tty::Tty, util::anybase::heap_raw};
 
 use super::shell_like::{handle_wrap, PyTty, PyTtyWrapper, TtyType};
 
@@ -20,17 +20,17 @@ pub fn handle_tee(inner: &mut Option<PyTtyWrapper>, tee_conf: PyTeeConf) -> PyRe
     let mut be_wrapped = inner.take().unwrap();
     let be_wrapped = be_wrapped.safe_take()?;
     let be_wrapped = Box::into_inner(be_wrapped);
-    let tee = Box::new(Tee::build(be_wrapped, &path));
+    let tee = Box::new(crate::term::tee::Tee::build(be_wrapped, &path));
     let tee = tee as TtyType;
     *inner = Some(PyTtyWrapper { tty: heap_raw(tee) });
     Ok(())
 }
 
 #[pyclass(extends=PyTty, subclass)]
-pub struct PyTee {}
+pub struct Tee {}
 
 #[pymethods]
-impl PyTee {
+impl Tee {
     #[new]
     fn py_new(be_wrapped: &mut PyTty, path: &str) -> PyResult<(Self, PyTty)> {
         let mut inner = None;
@@ -43,6 +43,6 @@ impl PyTee {
             },
         )?;
 
-        Ok((PyTee {}, PyTty::build(inner.unwrap())))
+        Ok((Tee {}, PyTty::build(inner.unwrap())))
     }
 }

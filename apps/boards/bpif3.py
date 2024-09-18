@@ -3,7 +3,7 @@ For board banana pi f3
 """
 
 from time import sleep
-from tester import PyTty, PySerial, PySdWirec, PyExec, info
+from tester import PyTty, Serial, SdWirec, Exec, info
 
 
 class BPiF3:
@@ -12,11 +12,11 @@ class BPiF3:
     """
 
     def __init__(self, sdwirec_port="id = 0\n", serial_port="/dev/ttyUSB0", baud=115200) -> None:
-        self.sdwirec = PySdWirec(sdwirec_port)
+        self.sdwirec = SdWirec(sdwirec_port)
         self.serial_port = serial_port
         self.baud = baud
 
-    def flash(self, shell: PyExec, img: str, dsk="/dev/sda"):
+    def flash(self, shell: Exec, img: str, dsk="/dev/sda"):
         """
         Flash the board with given image.
         """
@@ -43,5 +43,5 @@ class BPiF3:
         """
         Get the console of the board.
         """
-        tty = PySerial(self.serial_port, self.baud)
+        tty = Serial(self.serial_port, self.baud)
         return tty

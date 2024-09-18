@@ -38,10 +38,10 @@ pub fn handle_clitester(inner: &mut Option<PyTtyWrapper>, need_sudo: Option<bool
 }
 
 #[pyclass(extends=PyTty, subclass)]
-pub struct PyExec {}
+pub struct Exec {}
 
 #[pymethods]
-impl PyExec {
+impl Exec {
     #[new]
     #[pyo3(signature = (be_wrapped, sudo=None))]
     fn py_new(be_wrapped: &mut PyTty, sudo: Option<bool>) -> PyResult<(Self, PyTty)> {
@@ -50,7 +50,7 @@ impl PyExec {
         handle_wrap(&mut inner, Some(be_wrapped))?;
         handle_clitester(&mut inner, sudo)?;
 
-        Ok((PyExec {}, PyTty::build(inner.unwrap())))
+        Ok((Exec {}, PyTty::build(inner.unwrap())))
     }
 
     #[pyo3(signature = (script, timeout=None))]

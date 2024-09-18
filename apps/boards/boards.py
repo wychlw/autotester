@@ -3,7 +3,7 @@ This module contains the abstract class for all boards.
 """
 
 from abc import ABC, abstractmethod
-from tester import PyTty
+from tester import Tty
 
 
 class Boards(ABC):
@@ -25,7 +25,7 @@ class Boards(ABC):
         """
 
     @abstractmethod
-    def get_console(self, *args, **kwargs) -> PyTty:
+    def get_console(self, *args, **kwargs) -> Tty:
         """
         Get the console of the board.
         """

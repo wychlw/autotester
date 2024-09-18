@@ -1,9 +1,6 @@
 use pyo3::{exceptions::PyRuntimeError, pyclass, pymethods, PyResult};
 
-use crate::{
-    term::asciicast::Asciicast,
-    util::anybase::heap_raw,
-};
+use crate::util::anybase::heap_raw;
 
 use super::shell_like::{handle_wrap, PyTty, PyTtyWrapper, TtyType};
 
@@ -16,17 +13,17 @@ pub fn handle_asciicast(inner: &mut Option<PyTtyWrapper>) -> PyResult<()> {
     let mut be_wrapped = inner.take().unwrap();
     let be_wrapped = be_wrapped.safe_take()?;
     let be_wrapped = Box::into_inner(be_wrapped);
-    let tee = Box::new(Asciicast::build(be_wrapped));
+    let tee = Box::new(crate::term::asciicast::Asciicast::build(be_wrapped));
     let tee = tee as TtyType;
     *inner = Some(PyTtyWrapper { tty: heap_raw(tee) });
     Ok(())
 }
 
 #[pyclass(extends=PyTty, subclass)]
-pub struct PyAsciicast {}
+pub struct Asciicast {}
 
 #[pymethods]
-impl PyAsciicast {
+impl Asciicast {
     #[new]
     fn py_new(be_wrapped: &mut PyTty) -> PyResult<(Self, PyTty)> {
         let mut inner = None;
@@ -34,6 +31,6 @@ impl PyAsciicast {
         handle_wrap(&mut inner, Some(be_wrapped))?;
         handle_asciicast(&mut inner)?;
 
-        Ok((PyAsciicast {}, PyTty::build(inner.unwrap())))
+        Ok((Asciicast {}, PyTty::build(inner.unwrap())))
     }
 }

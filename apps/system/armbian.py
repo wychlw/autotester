@@ -3,7 +3,7 @@ For Armbian OS
 """
 
 from time import sleep
-from tester import PyExec
+from tester import Exec
 
 
 def slp(t=0.5):
@@ -18,7 +18,7 @@ class Armbian:
     System class for Armbian.
     """
 
-    def __init__(self, tty: PyExec):
+    def __init__(self, tty: Exec):
         self.tty = tty
 
     def wln(self, cmd: str):

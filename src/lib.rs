@@ -1,17 +1,7 @@
 #![feature(box_into_inner)]
 
 pub mod consts;
-pub mod term {
-    pub mod tty;
-
-    pub mod serial;
-    pub mod shell;
-    pub mod ssh;
-
-    pub mod asciicast;
-    pub mod recorder;
-    pub mod tee;
-}
+pub mod term;
 pub mod exec {
     pub mod cli_api;
     pub mod cli_exec;
@@ -33,4 +23,5 @@ pub mod util {
     pub mod util;
 }
 pub mod pythonapi;
+pub mod vendor;
 
