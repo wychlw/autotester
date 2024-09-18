@@ -64,7 +64,7 @@ def default_proc():
     system.loggin()
 
     asciicast = e.exit()
-    logger = Tty("wrap=true\nsimple_recorder=true\n", asciicast)
+    logger = PyTty("wrap=true\nsimple_recorder=true\n", asciicast)
     logger.begin()
     e = Exec(logger)
     system.tty = e

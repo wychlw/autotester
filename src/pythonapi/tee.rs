@@ -1,7 +1,7 @@
 use pyo3::{exceptions::PyRuntimeError, pyclass, pymethods, PyResult};
 use serde::Deserialize;
 
-use crate::{term::tty::Tty, util::anybase::heap_raw};
+use crate::util::anybase::heap_raw;
 
 use super::shell_like::{handle_wrap, PyTty, PyTtyWrapper, TtyType};
 
