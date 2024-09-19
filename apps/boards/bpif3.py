@@ -20,13 +20,13 @@ class BPiF3:
         """
         Flash the board with given image.
         """
-        self.sdwirec.to_ts()
+        # self.sdwirec.to_ts()
         sleep(0.5)
-        shell.assert_script_sudo(
-            f"dd if={img} of={dsk} status=progress", 600)
-        shell.assert_script_sudo("sync")
+        shell.script_sudo(
+            f"dd if={img} of={dsk} status=progress bs=4M ", 600)
+        shell.script_sudo("sync")
         sleep(0.5)
-        self.sdwirec.to_dut()
+        # self.sdwirec.to_dut()
         sleep(0.5)
 
     def power_cycle(self):

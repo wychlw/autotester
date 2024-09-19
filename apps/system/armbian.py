@@ -5,13 +5,7 @@ For Armbian OS
 from time import sleep
 from tester import Exec
 
-
-def slp(t=0.5):
-    """
-    Sleep for t second.
-    """
-    sleep(t)
-
+from system.system import slp
 
 class Armbian:
     """
@@ -35,9 +29,9 @@ class Armbian:
         self.tty.wait_serial(wait, timeout)
         slp()
 
-    def loggin(self):
+    def setup(self):
         """
-        Loggin to the board.
+        Setup the armbian.
         """
 
         # init settings
@@ -82,13 +76,16 @@ class Armbian:
         self.wit("#?")
         self.wln("1")
 
-        # Loggin
+    def loggin(self):
+        """
+        Login to the board.
+        """
         self.wit("root@")
 
     def get_info(self):
         """
         Get system information.
         """
-        self.tty.assert_script_run("uname -a")
-        self.tty.assert_script_run("cat /etc/os-release")
-        self.tty.assert_script_run("cat /proc/cpuinfo")
+        self.tty.script_run("uname -a")
+        self.tty.script_run("cat /etc/os-release")
+        self.tty.script_run("cat /proc/cpuinfo")
