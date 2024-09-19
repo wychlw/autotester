@@ -1,12 +1,10 @@
-use ptyprocess::{stream::Stream, PtyProcess};
-use std::io::BufReader;
+use portable_pty::{native_pty_system, Child, CommandBuilder, PtyPair, PtySize};
+use std::io::{BufReader, Read};
 use std::ops::DerefMut;
-use std::os::fd::AsRawFd;
 use std::{
     any::Any,
     error::Error,
     io::Write,
-    process::Command,
     sync::{Arc, Mutex},
     thread::{sleep, spawn, JoinHandle},
     time::Duration,
@@ -18,9 +16,11 @@ use crate::{consts::SHELL_DURATION, err, info, log, util::anybase::AnyBase};
 use super::tty::Tty;
 
 pub struct Shell {
-    inner: Arc<Mutex<Stream>>,
     buff: Arc<Mutex<Vec<u8>>>,
-    proc: PtyProcess,
+    pty: PtyPair,
+    child: Box<dyn Child + Send + Sync>,
+    reader: Arc<Mutex<Box<dyn Read + Send>>>,
+    writer: Arc<Mutex<Box<dyn Write + Send>>>,
     handle: Option<JoinHandle<()>>,
     stop: Arc<Mutex<bool>>,
 }
@@ -31,34 +31,30 @@ impl Shell {
 
         info!("Spawn shell process: {}", shell);
 
-        let mut inner = Command::new(shell);
-        inner.args(["-i"]);
-        let inner = PtyProcess::spawn(inner);
-        if let Err(e) = inner {
-            err!("Failed to spawn shell process. Reason: {}", e);
-            return Err(Box::new(e));
-        }
-        let proc = inner.unwrap();
-        let inner = proc.get_pty_stream()?;
+        let mut cmd = CommandBuilder::new(shell);
+        cmd.arg("-i");
+        let pty_system = native_pty_system();
+        let pty = pty_system.openpty(PtySize::default())?;
 
-        info!(
-            "Shell process spawned, got streamed... FD: {:?}",
-            inner.as_raw_fd()
-        );
+        let child = pty.slave.spawn_command(cmd)?;
 
-        let inner = Arc::new(Mutex::new(inner));
+        let reader = pty.master.try_clone_reader()?;
+
+        let writer = pty.master.take_writer()?;
 
         let mut res = Shell {
-            inner,
             buff: Arc::new(Mutex::new(Vec::new())),
-            proc,
+            pty,
+            child,
+            reader: Arc::new(Mutex::new(reader)),
+            writer: Arc::new(Mutex::new(writer)),
             handle: None,
             stop: Arc::new(Mutex::new(false)),
         };
 
         let buff = res.buff.clone();
         let stop = res.stop.clone();
-        let stream = res.inner.clone();
+        let reader = res.reader.clone();
         let handle = spawn(move || loop {
             sleep(Duration::from_millis(SHELL_DURATION));
             {
@@ -69,9 +65,9 @@ impl Shell {
             }
             let mut buf = Vec::new();
             {
-                let mut stream = stream.lock().unwrap();
-                let mut reader = BufReader::new(stream.deref_mut());
-                let sz = try_read(&mut reader, &mut buf);
+                let mut reader = reader.lock().unwrap();
+                let mut r = BufReader::new(reader.deref_mut());
+                let sz = try_read(&mut r, &mut buf);
                 if let Err(e) = sz {
                     err!("Failed to read from shell process. Reason: {}", e);
                     return;
@@ -104,7 +100,8 @@ impl Shell {
         }
         *stop = true;
         log!("Try to stop shell process");
-        self.proc.exit(false).unwrap();
+        writeln!(self.pty.master.take_writer().unwrap(), "exit").unwrap();
+        self.child.kill().unwrap();
         // if let Some(handle) = self.handle.take() {
         //     handle.join().unwrap();
         //     self.inner.wait().unwrap();
@@ -131,44 +128,44 @@ impl AnyBase for Shell {
 impl Tty for Shell {
     fn read(&mut self) -> Result<Vec<u8>, Box<dyn Error>> {
         let mut res = Vec::new();
-        let mut buff = self.buff.lock().unwrap();
+        let buff = self.buff.clone();
+        let mut buff = buff.lock().unwrap();
         res.extend(buff.iter());
         buff.clear();
-        if !res.is_empty() {
-            log!("Shell read: {:?}", String::from_utf8_lossy(&res));
-        }
         Ok(res)
     }
     fn read_line(&mut self) -> Result<Vec<u8>, Box<dyn Error>> {
         let mut res = Vec::new();
+        let buff = self.buff.clone();
         loop {
             sleep(Duration::from_millis(SHELL_DURATION));
-            let mut buff = self.buff.lock().unwrap();
-            if buff.is_empty() {
-                continue;
-            }
-            let mut i = 0;
-            while i < buff.len() {
-                res.push(buff[i]);
-                i += 1;
+            {
+                let mut buff = buff.lock().unwrap();
+                if buff.is_empty() {
+                    continue;
+                }
+                let mut i = 0;
+                while i < buff.len() {
+                    res.push(buff[i]);
+                    i += 1;
+                    if res.ends_with(&[0x0A]) {
+                        break;
+                    }
+                }
+                buff.drain(0..i);
                 if res.ends_with(&[0x0A]) {
                     break;
                 }
-            }
-            buff.drain(0..i);
-            if res.ends_with(&[0x0A]) {
-                break;
             }
         }
         Ok(res)
     }
     fn write(&mut self, data: &[u8]) -> Result<(), Box<dyn Error>> {
-        let mut stream = self.inner.lock().unwrap();
-        info!("Shell locked...");
-        match stream.write_all(data) {
+        let writer = self.writer.clone();
+        let mut writer = writer.lock().unwrap();
+        match writer.write_all(data) {
             Ok(_) => {
-                stream.flush().unwrap();
-                info!("Shell write: {:?}", String::from_utf8_lossy(data));
+                writer.flush().unwrap();
                 Ok(())
             }
             Err(e) => {

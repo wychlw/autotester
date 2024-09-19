@@ -6,7 +6,10 @@ use std::{
 };
 
 use crate::{
-    consts::DURATION, err, info, cli::tty::{DynTty, InnerTty, Tty, WrapperTty}, util::{anybase::AnyBase, util::rand_string}
+    cli::tty::{DynTty, InnerTty, Tty, WrapperTty},
+    consts::DURATION,
+    err, info,
+    util::{anybase::AnyBase, util::rand_string},
 };
 
 use super::cli_api::{CliTestApi, SudoCliTestApi};
@@ -24,6 +27,7 @@ impl CliTester {
 impl CliTester {
     fn run_command(&mut self, command: &String) -> Result<(), Box<dyn Error>> {
         info!("Write to shell: {}", command);
+        sleep(Duration::from_millis(DURATION));
         self.inner.write(command.as_bytes())
     }
 }
@@ -70,8 +74,21 @@ impl InnerTty for CliTester {
     }
 }
 
-impl CliTestApi for CliTester {
-    fn wait_serial(&mut self, expected: &str, timeout: u32) -> Result<String, Box<dyn Error>> {
+impl CliTester {
+    fn filter_assert_echo(&self, expected: &str, buf: &mut Vec<u8>) -> Result<(), Box<dyn Error>> {
+        let expected = "echo ".to_owned() + expected;
+        let expected = expected.as_bytes();
+        for (pos, window) in buf.windows(expected.len()).enumerate() {
+            if window == expected {
+                let i = pos + expected.len();
+                buf.drain(0..=i);
+                break;
+            }
+        }
+        Ok(())
+    }
+
+    fn do_wait_serial(&mut self, expected: &str, timeout: u32, filter_echo_back: Option<&str>) -> Result<String, Box<dyn Error>> {
         let begin = Instant::now();
         let mut buf = Vec::new();
         info!("Waiting for string {{{}}}", expected);
@@ -79,6 +96,9 @@ impl CliTestApi for CliTester {
             sleep(Duration::from_millis(DURATION));
             let res = self.inner.read()?;
             buf.extend_from_slice(&res);
+            if let Some(filter) = filter_echo_back {
+                self.filter_assert_echo(filter, &mut buf)?;
+            }
             let content = String::from_utf8(buf.clone()).unwrap_or_default();
             if content.contains(expected) {
                 info!("Matched string {{{}}}", expected);
@@ -97,17 +117,23 @@ impl CliTestApi for CliTester {
         let res = String::from_utf8(buf)?;
         Ok(res)
     }
+}
+
+impl CliTestApi for CliTester {
+    fn wait_serial(&mut self, expected: &str, timeout: u32) -> Result<String, Box<dyn Error>> {
+        self.do_wait_serial(expected, timeout, None)
+    }
     fn script_run(&mut self, script: &str, timeout: u32) -> Result<String, Box<dyn Error>> {
         let mut cmd = script.to_owned();
         let echo_content_rand = String::from_utf8(rand_string(8)).unwrap();
 
-        cmd += "&& echo ";
+        cmd += " && echo ";
         cmd += &echo_content_rand;
         cmd += " \n";
 
         self.run_command(&cmd)?;
 
-        self.wait_serial(&echo_content_rand, timeout)
+        self.do_wait_serial(&echo_content_rand, timeout, Some(&echo_content_rand))
     }
     fn background_script_run(&mut self, script: &str) -> Result<(), Box<dyn Error>> {
         let mut cmd = script.to_owned();
@@ -175,10 +201,18 @@ impl InnerTty for SudoCliTester {
 }
 
 impl CliTestApi for SudoCliTester {
-    fn wait_serial(&mut self, expected: &str, timeout: u32) -> Result<String, Box<dyn std::error::Error>> {
+    fn wait_serial(
+        &mut self,
+        expected: &str,
+        timeout: u32,
+    ) -> Result<String, Box<dyn std::error::Error>> {
         self.inner.wait_serial(expected, timeout)
     }
-    fn script_run(&mut self, script: &str, timeout: u32) -> Result<String, Box<dyn std::error::Error>> {
+    fn script_run(
+        &mut self,
+        script: &str,
+        timeout: u32,
+    ) -> Result<String, Box<dyn std::error::Error>> {
         self.inner.script_run(script, timeout)
     }
     fn background_script_run(&mut self, script: &str) -> Result<(), Box<dyn std::error::Error>> {
@@ -197,7 +231,7 @@ impl SudoCliTestApi for SudoCliTester {
     ) -> Result<String, Box<dyn std::error::Error>> {
         let mut cmd = String::from("sudo ");
         cmd += script;
-        cmd += "\n";
+        cmd += " ";
         self.inner.script_run(&cmd, timeout)
     }
 }
