@@ -37,11 +37,11 @@ jobs:
           - runner: ubuntu-latest
             target: ppc64le
     steps:
+      - uses: actions/checkout@v4
       - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y pkg-config libssl-dev openssl
-      - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: 3.x
@@ -72,11 +72,11 @@ jobs:
           - runner: ubuntu-latest
             target: armv7
     steps:
+      - uses: actions/checkout@v4
       - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y pkg-config libssl-dev openssl
-      - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: 3.x
@@ -103,10 +103,10 @@ jobs:
           - runner: windows-latest
             target: x86
     steps:
+      - uses: actions/checkout@v4
       - name: Install dependencies
         run: |
           choco install -y openssl
-      - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: 3.x
@@ -133,10 +133,10 @@ jobs:
           - runner: macos-14
             target: aarch64
     steps:
+      - uses: actions/checkout@v4
       - name: Install dependencies
         run: |
           brew install openssl@1.1
-      - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: 3.x

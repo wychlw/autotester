@@ -3,13 +3,7 @@
 pub mod consts;
 pub mod cli;
 pub mod gui;
-pub mod exec {
-    pub mod cli_api;
-    pub mod cli_exec;
-    pub mod cli_exec_sudo;
-
-    pub mod runner;
-}
+pub mod exec;
 pub mod devhost {
     pub mod devhost;
     pub mod sdwirec;

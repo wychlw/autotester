@@ -4,7 +4,7 @@ use crate::{
     exec::{
         cli_api::{CliTestApi, SudoCliTestApi},
         cli_exec::CliTester,
-        cli_exec_sudo::SudoCliTester,
+        cli_exec::SudoCliTester,
     },
     util::anybase::heap_raw,
 };
@@ -58,7 +58,7 @@ impl Exec {
         mut self_: PyRefMut<'_, Self>,
         script: &str,
         timeout: Option<u32>,
-    ) -> PyResult<()> {
+    ) -> PyResult<String> {
         let self_ = self_.as_mut();
         let inner = self_.inner.get_mut()?;
         let inner = inner.as_any_mut();
@@ -67,50 +67,21 @@ impl Exec {
 
         if inner.downcast_ref::<CliTester>().is_some() {
             let inner = inner.downcast_mut::<CliTester>().unwrap();
-            inner
+            let res = inner
                 .script_run(script, timeout)
                 .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
+            Ok(res)
         } else if inner.downcast_ref::<SudoCliTester>().is_some() {
             let inner = inner.downcast_mut::<SudoCliTester>().unwrap();
-            inner
+            let res = inner
                 .script_run(script, timeout)
                 .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
+            Ok(res)
         } else {
-            return Err(PyRuntimeError::new_err(
+            Err(PyRuntimeError::new_err(
                 "Can't find the right object to run the script",
-            ));
+            ))
         }
-        Ok(())
-    }
-
-    #[pyo3(signature = (script, timeout=None))]
-    fn assert_script_run(
-        mut self_: PyRefMut<'_, Self>,
-        script: &str,
-        timeout: Option<u32>,
-    ) -> PyResult<()> {
-        let self_ = self_.as_mut();
-        let inner = self_.inner.get_mut()?;
-        let inner = inner.as_any_mut();
-
-        let timeout = timeout.unwrap_or(30);
-
-        if inner.downcast_ref::<CliTester>().is_some() {
-            let inner = inner.downcast_mut::<CliTester>().unwrap();
-            inner
-                .assert_script_run(script, timeout)
-                .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
-        } else if inner.downcast_ref::<SudoCliTester>().is_some() {
-            let inner = inner.downcast_mut::<SudoCliTester>().unwrap();
-            inner
-                .assert_script_run(script, timeout)
-                .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
-        } else {
-            return Err(PyRuntimeError::new_err(
-                "Can't find the right object to run the script",
-            ));
-        }
-        Ok(())
     }
 
     fn background_script_run(mut self_: PyRefMut<'_, Self>, script: &str) -> PyResult<()> {
@@ -164,7 +135,7 @@ impl Exec {
         mut self_: PyRefMut<'_, Self>,
         expected: &str,
         timeout: Option<u32>,
-    ) -> PyResult<()> {
+    ) -> PyResult<String> {
         let self_ = self_.as_mut();
         let inner = self_.inner.get_mut()?;
         let inner = inner.as_any_mut();
@@ -173,20 +144,21 @@ impl Exec {
 
         if inner.downcast_ref::<CliTester>().is_some() {
             let inner = inner.downcast_mut::<CliTester>().unwrap();
-            inner
+            let res = inner
                 .wait_serial(expected, timeout)
                 .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
+            Ok(res)
         } else if inner.downcast_ref::<SudoCliTester>().is_some() {
             let inner = inner.downcast_mut::<SudoCliTester>().unwrap();
-            inner
+            let res = inner
                 .wait_serial(expected, timeout)
                 .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
+            Ok(res)
         } else {
-            return Err(PyRuntimeError::new_err(
+            Err(PyRuntimeError::new_err(
                 "Can't find the right object to run the script",
-            ));
+            ))
         }
-        Ok(())
     }
 
     #[pyo3(signature = (script, timeout=None))]
@@ -194,7 +166,7 @@ impl Exec {
         mut self_: PyRefMut<'_, Self>,
         script: &str,
         timeout: Option<u32>,
-    ) -> PyResult<()> {
+    ) -> PyResult<String> {
         let self_ = self_.as_mut();
         let inner = self_.inner.get_mut()?;
         let inner = inner.as_any_mut();
@@ -203,39 +175,14 @@ impl Exec {
 
         if inner.downcast_ref::<SudoCliTester>().is_some() {
             let inner = inner.downcast_mut::<SudoCliTester>().unwrap();
-            inner
+            let res = inner
                 .script_sudo(script, timeout)
                 .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
+            Ok(res)
         } else {
-            return Err(PyRuntimeError::new_err(
+            Err(PyRuntimeError::new_err(
                 "Can't find the right object to run the script",
-            ));
+            ))
         }
-        Ok(())
-    }
-
-    #[pyo3(signature = (script, timeout=None))]
-    fn assert_script_sudo(
-        mut self_: PyRefMut<'_, Self>,
-        script: &str,
-        timeout: Option<u32>,
-    ) -> PyResult<()> {
-        let self_ = self_.as_mut();
-        let inner = self_.inner.get_mut()?;
-        let inner = inner.as_any_mut();
-
-        let timeout = timeout.unwrap_or(30);
-
-        if inner.downcast_ref::<SudoCliTester>().is_some() {
-            let inner = inner.downcast_mut::<SudoCliTester>().unwrap();
-            inner
-                .assert_script_sudo(script, timeout)
-                .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
-        } else {
-            return Err(PyRuntimeError::new_err(
-                "Can't find the right object to run the script",
-            ));
-        }
-        Ok(())
     }
 }

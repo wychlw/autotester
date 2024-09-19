@@ -1,6 +1,7 @@
 /target
 *.log
 *.cast
+*.deprecated
 
 # Byte-compiled / optimized / DLL files
 

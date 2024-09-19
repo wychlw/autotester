@@ -4,12 +4,16 @@ use pyo3::{exceptions::PyRuntimeError, prelude::*};
 use serde::Deserialize;
 
 use crate::{
-    exec::{cli_exec::CliTester, cli_exec_sudo::SudoCliTester},
+    cli::{
+        asciicast::Asciicast,
+        deansi::DeANSI,
+        recorder::{Recorder, SimpleRecorder},
+        tee::Tee,
+        tty::{DynTty, WrapperTty},
+    },
+    exec::cli_exec::{CliTester, SudoCliTester},
     log,
     pythonapi::{asciicast::handle_asciicast, tee::handle_tee},
-    cli::{
-        asciicast::Asciicast, deansi::DeANSI, recorder::{Recorder, SimpleRecorder}, tee::Tee, tty::{DynTty, WrapperTty}
-    },
     util::anybase::heap_raw,
 };
 
