@@ -636,6 +636,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "inventory"
+version = "0.3.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f958d3d68f4167080a18141e10381e7634563984a537f2a49a30fd8e53ac5767"
+
+[[package]]
 name = "io-kit-sys"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1614,6 +1620,7 @@ dependencies = [
  "colored",
  "enigo",
  "image",
+ "inventory",
  "nix 0.29.0",
  "portable-pty",
  "pyo3",

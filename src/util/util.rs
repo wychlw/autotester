@@ -5,7 +5,6 @@ use std::{
 
 use rand::{distributions::Alphanumeric, thread_rng, Rng};
 
-use crate::info;
 
 #[macro_export]
 macro_rules! todo {

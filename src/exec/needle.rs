@@ -14,6 +14,13 @@ pub enum Needle {
     // In future, consider adding more needle types,
     // like using neural network to match the screen
     // to get a better flexibility
+    NeedleEnd, // remove will warn about unreachable pattern
+}
+
+impl Needle {
+    pub fn is_basic(&self) -> bool {
+        matches!(self, Needle::Basic(_))
+    }
 }
 
 /// Needle type

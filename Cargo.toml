@@ -24,6 +24,7 @@ image = "0.25.2"
 xcap = "0.0.13"
 enigo = "0.2.1"
 portable-pty = "0.8.1"
+inventory = "0.3.15"
 
 [toolchain]
 channel = "nightly"

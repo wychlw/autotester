@@ -14,15 +14,17 @@ use super::needle::Needle;
 /// The API can used for testing, with bypass [`Screen`] operations.
 pub trait GuiTestApi: Screen {
     /// Check if the current screen is the expected screen
-    fn assert_screen(&mut self, needle: Needle) -> Result<(), Box<dyn Error>>;
+    fn assert_screen(&mut self, needle: &Needle, timeout: u32) -> Result<(), Box<dyn Error>>;
+
     /// Check and click the target position
     /// 
+    /// Only Basic Needle support this, might remove in the future and move to FFI part.
     /// Suggest using assert_screen and click seperately, as futher consider adding relative position etc.
-    fn assert_screen_click(&mut self, needle: Needle) -> Result<(), Box<dyn Error>>;
+    fn assert_screen_click(&mut self, needle: &Needle, timeout: u32) -> Result<(), Box<dyn Error>>;
 
     /// Wait until current screen changed
-    fn wait_screen_change(&mut self, timeout: u32) -> Result<(), Box<dyn Error>>;
+    fn wait_screen_change(&mut self, timeout: u32, allow_list: Option<&[String]>) -> Result<(), Box<dyn Error>>;
 
     /// Wait and assert the screen won't change in timeout
-    fn wait_still_screen(&mut self, timeout: u32) -> Result<(), Box<dyn Error>>;
+    fn wait_still_screen(&mut self, timeout: u32, allow_list: Option<&[String]>) -> Result<(), Box<dyn Error>>;
 }
