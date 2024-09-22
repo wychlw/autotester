@@ -27,6 +27,7 @@ pub mod serial;
 pub mod shell;
 pub mod ssh;
 pub mod asciicast;
+pub mod asciicast_multi;
 pub mod recorder;
 pub mod tee;
 pub mod deansi;
