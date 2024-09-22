@@ -54,7 +54,7 @@ impl Tty for DeANSI {
 
     /// Write data to the Tty
     fn write(&mut self, data: &[u8]) -> Result<(), Box<dyn Error>> {
-        let data = strip_ansi_escapes::strip(&data);
+        let data = strip_ansi_escapes::strip(data);
         self.inner.write(&data)?;
         Ok(())
     }

@@ -9,14 +9,14 @@ use rand::{distributions::Alphanumeric, thread_rng, Rng};
 #[macro_export]
 macro_rules! todo {
     () => {
-        Err(Box::<dyn Error>::from("TODO"))
+        Err("TODO".into())
     };
 }
 
 #[macro_export]
 macro_rules! unfinished {
     () => {
-        Err(Box::<dyn Error>::from("UNFINISHED"))
+        Err("UNFINISHED".into())
     };
 }
 

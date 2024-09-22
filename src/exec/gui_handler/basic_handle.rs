@@ -38,7 +38,7 @@ pub fn basic_handle_once(area: &Area, screen: &RgbaImage) -> bool {
             let similarity = match_count as f32 / total_count as f32;
             similarity >= area.match_threhold
         }
-        NeedleType::Ocr => return false,
+        NeedleType::Ocr => false,
         NeedleType::Exclude => {
             let mut match_count = 0;
             let total_count = screen.width() * screen.height() - area.width * area.height;

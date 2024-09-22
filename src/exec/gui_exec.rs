@@ -118,10 +118,10 @@ impl GuiTestApi for GuiTestor {
             let screen = self.read()?;
             let mut res = None;
             for handler in inventory::iter::<HandlerCollector> {
-                if !handler.inner.can_handle(&needle) {
+                if !handler.inner.can_handle(needle) {
                     continue;
                 }
-                res = Some(handler.inner.handle(&needle, &screen) || res.unwrap_or(false));
+                res = Some(handler.inner.handle(needle, &screen) || res.unwrap_or(false));
             }
             match res {
                 Some(true) => Ok(Some(())),
@@ -131,7 +131,7 @@ impl GuiTestApi for GuiTestor {
         })
     }
     fn assert_screen_click(&mut self, needle: &Needle, timeout: u32) -> Result<(), Box<dyn Error>> {
-        self.assert_screen(&needle, timeout)?;
+        self.assert_screen(needle, timeout)?;
         if !needle.is_basic() {
             return Err("Only Basic Needle support this".into());
         }

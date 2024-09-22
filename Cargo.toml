@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [lib]
 name = "tester"
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "staticlib", "rlib"]
 
 [dependencies]
 pyo3 = "0.22.0"
@@ -25,6 +25,13 @@ xcap = "0.0.13"
 enigo = "0.2.1"
 portable-pty = "0.8.1"
 inventory = "0.3.15"
+eframe = "0.28.1"
+egui_extras = "0.28.1"
 
 [toolchain]
 channel = "nightly"
+
+[[test]]
+name = "ui_test"
+path = "tests/ui_test.rs"
+harness = false

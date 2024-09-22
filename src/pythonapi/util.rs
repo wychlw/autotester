@@ -1,7 +1,6 @@
-use pyo3::pyfunction;
+use pyo3::{exceptions::PyRuntimeError, pyfunction, PyResult};
 
-use crate::util::logger::LogLevel;
-
+use crate::{ui::main::AppUi, util::logger::LogLevel};
 
 #[pyfunction]
 pub fn set_log_level(level: &str) {
@@ -17,12 +16,17 @@ pub fn set_log_level(level: &str) {
 
 #[pyfunction]
 pub fn get_log_level() -> String {
-    let level = crate::util::logger::LogLevelConf::get();
+    let level = crate::util::logger::get_log_level();
     match level {
-        0 => "Debug".to_string(),
-        10 => "Info".to_string(),
-        20 => "Warn".to_string(),
-        30 => "Error".to_string(),
-        _ => "Debug".to_string(),
+        LogLevel::Debug => "Debug".to_string(),
+        LogLevel::Info => "Info".to_string(),
+        LogLevel::Warn => "Warn".to_string(),
+        LogLevel::Error => "Error".to_string(),
     }
+}
+
+#[pyfunction]
+pub fn run_ui() -> PyResult<()> {
+    AppUi::new().map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
+    Ok(())
 }

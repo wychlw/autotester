@@ -23,6 +23,7 @@ pub enum SshPass {
     Key(String), // Path to private key
 }
 
+#[allow(dead_code)]
 pub struct Ssh {
     // sess: Session,
     channel: Arc<Mutex<Channel>>,
@@ -102,7 +103,7 @@ impl Ssh {
 
         Ssh {
             // sess: sess,
-            channel: channel,
+            channel,
             buff,
             stop,
             handle: Some(handle),

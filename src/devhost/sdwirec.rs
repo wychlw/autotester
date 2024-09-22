@@ -8,20 +8,16 @@ use crate::info;
 
 use super::devhost::DevHost;
 
+#[derive(Default)]
 pub struct Sdwirec {}
 
-impl Sdwirec {
-    pub fn new() -> Sdwirec {
-        Sdwirec {}
-    }
-}
-
+#[allow(static_mut_refs)]
 impl DevHost<Sdwirec> for Sdwirec {
     fn get_device() -> Arc<Mutex<Sdwirec>> {
         static mut DEVICE: Option<Arc<Mutex<Sdwirec>>> = None;
         unsafe {
             DEVICE
-                .get_or_insert_with(|| Arc::new(Mutex::new(Sdwirec::new())))
+                .get_or_insert_with(|| Arc::new(Mutex::new(Sdwirec::default())))
                 .clone()
         }
     }

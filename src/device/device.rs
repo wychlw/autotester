@@ -5,16 +5,16 @@ use std::error::Error;
 use crate::cli::{ssh::SshPass, tty::DynTty};
 
 
-struct ShellOptions {
+pub struct ShellOptions {
     shell: Option<String>,
 }
 
-struct SerialOptions {
+pub struct SerialOptions {
     port: String,
     baud: u32,
 }
 
-struct SshOptions {
+pub struct SshOptions {
     host: String,
     port: u16,
     user: String,

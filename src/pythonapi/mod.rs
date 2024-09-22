@@ -27,7 +27,7 @@ use serial::Serial;
 use shell::Shell;
 use tee::Tee;
 use shell_like::PyTty;
-use util::{get_log_level, set_log_level};
+use util::{get_log_level, run_ui, set_log_level};
 
 #[pymodule]
 #[pyo3(name = "tester")]
@@ -44,6 +44,8 @@ fn tester(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(build_ttyhook, m)?)?;
     m.add_function(wrap_pyfunction!(set_log_level, m)?)?;
     m.add_function(wrap_pyfunction!(get_log_level, m)?)?;
+
+    m.add_function(wrap_pyfunction!(run_ui, m)?)?;
 
     m.add_function(wrap_pyfunction!(info, m)?)?;
     m.add_function(wrap_pyfunction!(log, m)?)?;

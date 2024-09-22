@@ -15,10 +15,11 @@ use crate::{consts::SHELL_DURATION, err, info, log, util::anybase::AnyBase};
 
 use super::tty::Tty;
 
+#[allow(dead_code)]
 pub struct Shell {
     buff: Arc<Mutex<Vec<u8>>>,
-    pty: PtyPair,
-    child: Box<dyn Child + Send + Sync>,
+    pty: PtyPair,                        // unused: As holder
+    child: Box<dyn Child + Send + Sync>, // unused: As holder
     reader: Arc<Mutex<Box<dyn Read + Send>>>,
     writer: Arc<Mutex<Box<dyn Write + Send>>>,
     handle: Option<JoinHandle<()>>,
@@ -100,8 +101,8 @@ impl Shell {
         }
         *stop = true;
         log!("Try to stop shell process");
-        writeln!(self.pty.master.take_writer().unwrap(), "exit").unwrap();
-        self.child.kill().unwrap();
+        // writeln!(self.pty.master.take_writer().unwrap(), "exit").unwrap();
+        // self.child.kill().unwrap();
         // if let Some(handle) = self.handle.take() {
         //     handle.join().unwrap();
         //     self.inner.wait().unwrap();

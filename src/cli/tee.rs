@@ -3,12 +3,16 @@
 //! # Example
 //!
 //! ```
-//! let s = Shell::build("bash");
-//! let t = Tee::build(s, "output.log");
+//! # use tester::cli::shell::Shell;
+//! # use tester::cli::tee::Tee;
+//! # use tester::cli::tty::Tty;
+//! # use tester::cli::tty::WrapperTty;
+//! let s = Shell::build(Some("bash"))?;
+//! let mut t = Tee::build(Box::new(s), "/tmp/output.log");
 //! t.write(b"echo hello\n");
 //! t.read();
-//! let s = t.exit();
-//! s.exit();
+//! let _ = t.exit();
+//! # Ok::<(), Box<dyn std::error::Error>>(())
 //! ```
 //!
 

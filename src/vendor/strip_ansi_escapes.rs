@@ -20,7 +20,7 @@
 //!
 //! # fn foo() -> io::Result<()> {
 //! let bytes_with_colors = b"\x1b[32mfoo\x1b[m bar";
-//! let plain_bytes = strip_ansi_escapes::strip(&bytes_with_colors);
+//! let plain_bytes = tester::vendor::strip_ansi_escapes::strip(&bytes_with_colors);
 //! io::stdout().write_all(&plain_bytes)?;
 //! # Ok(())
 //! # }
@@ -35,7 +35,7 @@ use vte::{Parser, Perform};
 /// # Example
 /// ```
 /// use std::io::{self, Write};
-/// use strip_ansi_escapes::Writer;
+/// use tester::vendor::strip_ansi_escapes::Writer;
 ///
 /// # fn foo() -> io::Result<()> {
 /// let bytes_with_colors = b"\x1b[32mfoo\x1b[m bar";
@@ -79,7 +79,7 @@ where
 ///
 /// ```
 /// let str_with_colors = "\x1b[32mfoo\x1b[m bar";
-/// let string_without_colors = strip_ansi_escapes::strip_str(str_with_colors);
+/// let string_without_colors = tester::vendor::strip_ansi_escapes::strip_str(str_with_colors);
 /// assert_eq!(string_without_colors, "foo bar");
 /// ```
 pub fn strip_str<T>(data: T) -> String
@@ -172,12 +172,6 @@ where
         }
     }
 }
-
-#[cfg(doctest)]
-extern crate doc_comment;
-
-#[cfg(doctest)]
-doc_comment::doctest!("../README.md", readme);
 
 #[cfg(test)]
 mod tests {

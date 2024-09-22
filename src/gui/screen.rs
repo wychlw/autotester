@@ -20,7 +20,8 @@ use crate::util::anybase::AnyBase;
 
 /// A Screen trait, used to interact with a screen
 pub trait Screen: AnyBase {
-    //! Get the size of the Screen
+
+    /// Get the size of the Screen
     fn size(&self) -> (u32, u32);
 
     /// Read the contents of the Screen as an image
