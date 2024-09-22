@@ -1,5 +1,5 @@
 //! Asciicast recorder.
-//! 
+//!
 //! The Asciicast recorder is a recorder that records the terminal output
 //! in the asciicast v2 format.
 
@@ -7,6 +7,7 @@ use std::{
     any::Any,
     collections::HashMap,
     error::Error,
+    mem::replace,
     sync::{Arc, Mutex},
     thread::{sleep, spawn, JoinHandle},
     time::{Duration, SystemTime},
@@ -15,11 +16,7 @@ use std::{
 use asciicast::{Entry, EventType, Header};
 use serde_json::to_string;
 
-use crate::{
-    consts::DURATION,
-    info,
-    util::anybase::AnyBase,
-};
+use crate::{consts::DURATION, info, util::anybase::AnyBase};
 
 use super::{
     recorder::Recorder,
@@ -27,7 +24,8 @@ use super::{
 };
 
 pub struct Asciicast {
-    inner: Arc<Mutex<Option<DynTty>>>,
+    inner: Arc<Mutex<DynTty>>,
+    inner_took: Arc<Mutex<bool>>,
     head: Header,
     data: Arc<Mutex<Vec<u8>>>,
     logged: Arc<Mutex<Vec<Entry>>>,
@@ -38,10 +36,11 @@ pub struct Asciicast {
 
 impl Asciicast {
     pub fn build(inner: DynTty) -> Asciicast {
-        let inner = Arc::new(Mutex::new(Some(inner)));
+        let inner = Arc::new(Mutex::new(inner));
 
         let mut res = Asciicast {
             inner: inner.clone(),
+            inner_took: Arc::new(Mutex::new(false)),
             head: Header {
                 version: 2,
                 width: 80,
@@ -64,38 +63,47 @@ impl Asciicast {
         };
 
         let inner = inner.clone();
+        let inner_took = res.inner_took.clone();
         let data = res.data.clone();
         let logged = res.logged.clone();
         let begin = res.begin.clone();
         let begin_time = res.begin_time.clone();
         let process = move || loop {
             sleep(Duration::from_millis(DURATION));
-            let mut inner = inner.lock().unwrap();
-            if inner.is_none() {
-                return;
+            {
+                let inner_took = inner_took.lock().unwrap();
+                if *inner_took {
+                    return;
+                }
             }
-            let inner = inner.as_mut().unwrap();
-            let new_data = inner.read();
-            if new_data.is_err() {
-                return;
-            }
-            let new_data = new_data.unwrap();
+            let new_data = {
+                let mut inner = inner.lock().unwrap();
+                let new_data = inner.read();
+                if new_data.is_err() {
+                    return;
+                }
+                new_data.unwrap()
+            };
 
-            let begin = begin.lock().unwrap();
-            if *begin && !new_data.is_empty() {
-                let time = begin_time.lock().unwrap().elapsed().unwrap();
-                let timestamp = time.as_millis();
-                let timestamp = timestamp as f64 / 1000.0;
-                let mut logged = logged.lock().unwrap();
-                logged.push(Entry {
-                    time: timestamp,
-                    event_type: EventType::Output,
-                    event_data: String::from_utf8(new_data.clone()).unwrap_or_default(),
-                });
+            {
+                let begin = begin.lock().unwrap();
+                if *begin && !new_data.is_empty() {
+                    let time = begin_time.lock().unwrap().elapsed().unwrap();
+                    let timestamp = time.as_millis();
+                    let timestamp = timestamp as f64 / 1000.0;
+                    let mut logged = logged.lock().unwrap();
+                    logged.push(Entry {
+                        time: timestamp,
+                        event_type: EventType::Output,
+                        event_data: String::from_utf8(new_data.clone()).unwrap_or_default(),
+                    });
+                }
             }
 
-            let mut data = data.lock().unwrap();
-            data.extend(new_data);
+            {
+                let mut data = data.lock().unwrap();
+                data.extend(new_data);
+            }
         };
 
         let thread = spawn(process);
@@ -149,21 +157,60 @@ impl Tty for Asciicast {
         Ok(res)
     }
     fn write(&mut self, data: &[u8]) -> Result<(), Box<dyn Error>> {
-        let inner = self.inner.clone();
-        let mut inner = inner.lock().unwrap();
-        if inner.is_none() {
-            return Err(Box::<dyn Error>::from("You've already exited."));
+        {
+            let inner_took = self.inner_took.lock().unwrap();
+            if *inner_took {
+                return Err(Box::<dyn Error>::from("You've already exited."));
+            }
         }
-        let inner = inner.as_mut().unwrap();
-        inner.write(data)
+        {
+            let inner = self.inner.clone();
+            let mut inner = inner.lock().unwrap();
+            inner.write(data)
+        }
+    }
+}
+
+struct DummyTty {}
+impl AnyBase for DummyTty {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self
+    }
+    fn into_any(self: Box<Self>) -> Box<dyn Any> {
+        self
+    }
+}
+impl Tty for DummyTty {
+    fn read(&mut self) -> Result<Vec<u8>, Box<dyn Error>> {
+        Ok(Vec::new())
+    }
+    fn read_line(&mut self) -> Result<Vec<u8>, Box<dyn Error>> {
+        Ok(Vec::new())
+    }
+    fn write(&mut self, _data: &[u8]) -> Result<(), Box<dyn Error>> {
+        Ok(())
     }
 }
 
 impl WrapperTty for Asciicast {
-    fn exit(self) -> DynTty {
-        let inner = self.inner.clone();
-        let mut inner = inner.lock().unwrap();
-        inner.take().unwrap()
+    fn exit(mut self) -> DynTty {
+        {
+            let mut inner_took = self.inner_took.lock().unwrap();
+            *inner_took = true;
+        }
+        let dummy = DummyTty {};
+        self.swap(Box::new(dummy)).unwrap()
+    }
+
+    fn inner_mut(&mut self) -> &mut DynTty {
+        panic!("Asciicast recorder does not support inner_mut method... I have no idea how to implement it.");
+    }
+
+    fn inner_ref(&self) -> &DynTty {
+        panic!("Asciicast recorder does not support inner_mut method... I have no idea how to implement it.");
     }
 }
 
@@ -262,13 +309,15 @@ impl Recorder for Asciicast {
 
     fn swap(&mut self, target: DynTty) -> Result<DynTty, Box<dyn Error>> {
         sleep(Duration::from_micros(DURATION));
+        {
+            let inner_took = self.inner_took.lock().unwrap();
+            if *inner_took {
+                return Err(Box::<dyn Error>::from("You've already exited."));
+            }
+        }
         let inner = self.inner.clone();
         let mut inner = inner.lock().unwrap();
-        if inner.is_none() {
-            return Err(Box::<dyn Error>::from("You've already exited."));
-        }
-        let res = inner.take().unwrap();
-        *inner = Some(target);
+        let res = replace(&mut *inner, target);
         Ok(res)
     }
 }

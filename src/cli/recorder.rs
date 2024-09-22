@@ -1,6 +1,6 @@
 use std::{any::Any, error::Error, mem::replace};
 
-use crate::{info, cli::tty::Tty, util::anybase::AnyBase};
+use crate::{cli::tty::Tty, info, util::anybase::AnyBase};
 
 use super::tty::{DynTty, WrapperTty};
 
@@ -74,6 +74,14 @@ impl Tty for SimpleRecorder {
 impl WrapperTty for SimpleRecorder {
     fn exit(self) -> DynTty {
         self.inner
+    }
+
+    fn inner_ref(&self) -> &DynTty {
+        &self.inner
+    }
+
+    fn inner_mut(&mut self) -> &mut DynTty {
+        &mut self.inner
     }
 }
 

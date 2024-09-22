@@ -1,8 +1,8 @@
 use std::error::Error;
 
-use crate::cli::tty::InnerTty;
+use crate::cli::tty::WrapperTty;
 
-pub trait CliTestApi: InnerTty {
+pub trait CliTestApi: WrapperTty {
     /// 
     /// 
     /// You may found this func includes assert_script_run and script_output 

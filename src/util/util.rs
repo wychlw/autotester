@@ -5,14 +5,6 @@ use std::{
 
 use rand::{distributions::Alphanumeric, thread_rng, Rng};
 
-
-#[macro_export]
-macro_rules! todo {
-    () => {
-        Err("TODO".into())
-    };
-}
-
 #[macro_export]
 macro_rules! unfinished {
     () => {

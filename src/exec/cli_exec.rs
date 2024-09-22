@@ -6,10 +6,7 @@ use std::{
 };
 
 use crate::{
-    cli::tty::{DynTty, InnerTty, Tty, WrapperTty},
-    consts::DURATION,
-    err, info,
-    util::{anybase::AnyBase, util::rand_string},
+    cli::tty::{DynTty, Tty, WrapperTty}, consts::DURATION, err, info, util::{anybase::AnyBase, util::rand_string}
 };
 
 use super::cli_api::{CliTestApi, SudoCliTestApi};
@@ -63,12 +60,11 @@ impl WrapperTty for CliTester {
     fn exit(self) -> DynTty {
         self.inner
     }
-}
 
-impl InnerTty for CliTester {
     fn inner_ref(&self) -> &DynTty {
         &self.inner
     }
+
     fn inner_mut(&mut self) -> &mut DynTty {
         &mut self.inner
     }
@@ -189,12 +185,11 @@ impl WrapperTty for SudoCliTester {
     fn exit(self) -> DynTty {
         self.inner.exit()
     }
-}
 
-impl InnerTty for SudoCliTester {
     fn inner_ref(&self) -> &DynTty {
         self.inner.inner_ref()
     }
+
     fn inner_mut(&mut self) -> &mut DynTty {
         self.inner.inner_mut()
     }

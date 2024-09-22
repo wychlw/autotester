@@ -61,8 +61,15 @@ impl Tty for DeANSI {
 }
 
 impl WrapperTty for DeANSI {
-    /// Exit the Tty and return the inner Tty
     fn exit(self) -> DynTty {
         self.inner
+    }
+
+    fn inner_ref(&self) -> &DynTty {
+        &self.inner
+    }
+
+    fn inner_mut(&mut self) -> &mut DynTty {
+        &mut self.inner
     }
 }

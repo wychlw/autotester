@@ -74,8 +74,15 @@ impl Tty for Tee {
 }
 
 impl WrapperTty for Tee {
-    fn exit(mut self) -> DynTty {
-        self.file.flush().unwrap();
+    fn exit(self) -> DynTty {
         self.inner
+    }
+
+    fn inner_ref(&self) -> &DynTty {
+        &self.inner
+    }
+
+    fn inner_mut(&mut self) -> &mut DynTty {
+        &mut self.inner
     }
 }

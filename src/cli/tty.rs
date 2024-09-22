@@ -28,10 +28,6 @@ pub trait WrapperTty: Tty {
 
     /// Exit the Tty and return the inner Tty
     fn exit(self) -> DynTty;
-}
-
-/// A trait for accessing the inner `Tty` of a `WrapperTty`
-pub trait InnerTty: WrapperTty {
 
     /// Get a reference to the inner Tty
     fn inner_ref(&self) -> &DynTty;

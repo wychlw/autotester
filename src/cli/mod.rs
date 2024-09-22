@@ -15,8 +15,7 @@
 //! functionality, or do some pre-processing before passing the data to
 //! the inner [`Tty`].
 //! 
-//! Sometimes, we may need to modify the config **inside** a [`WrapperTty`].
-//! That's where the [`InnerTty`] trait comes in. It allows us to access the
+//! Sometimes, we may need to modify the config **inside** a [`WrapperTty`]. It allows us to access the
 //! inner [`Tty`] of a [`WrapperTty`] (by ref or mut, ofcourse).
 //! 
 //! Then, based on this concept, we can build a lot of useful tools, such as
