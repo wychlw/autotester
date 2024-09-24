@@ -37,6 +37,18 @@ class Generic:
         slp()
         self.tty.wait_serial(self.username)
         slp()
+        try:
+            self.tty.wait_serial("Current")
+            # Means the password is expired.
+            slp()
+            self.tty.writeln(self.password)
+            slp(5)
+            self.password = "plct12321"
+            self.tty.writeln(self.password)
+            slp(5)
+            self.tty.writeln(self.password)
+        except Exception as e:
+            pass
 
     def get_info(self):
         """

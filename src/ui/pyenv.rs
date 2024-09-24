@@ -1,13 +1,12 @@
-use std::{collections::HashMap, sync::LazyLock};
+use std::sync::LazyLock;
 
 use pyo3::{
     ffi::{c_str, PyImport_AddModule, PyModule_GetDict},
     prepare_freethreaded_python,
-    types::{IntoPyDict, PyAnyMethods, PyDict, PyDictMethods},
-    Bound, Py, Python,
+    types::{PyDict, PyDictMethods}, Py, Python,
 };
 
-use crate::{err, info};
+use crate::err;
 
 pub struct PyEnv {
     globals: Py<PyDict>,
