@@ -5,17 +5,17 @@
 //! This version may have problems with inner_mut/ref method.
 
 use std::{
-    any::Any, collections::HashMap, error::Error, mem::replace, sync::{Arc, Mutex}, thread::{sleep, spawn, JoinHandle}, time::{Duration, SystemTime}
+    collections::HashMap, error::Error, mem::replace, sync::{Arc, Mutex}, thread::{sleep, spawn, JoinHandle}, time::{Duration, SystemTime}
 };
 
 use asciicast::{Entry, EventType, Header};
 use serde_json::to_string;
 
-use crate::{consts::DURATION, info, util::anybase::AnyBase};
+use crate::{consts::DURATION, impl_any, info};
 
 use super::{
     recorder::Recorder,
-    tty::{DynTty, Tty, WrapperTty},
+    tty::{DummyTty, DynTty, Tty, WrapperTty},
 };
 
 pub struct Asciicast {
@@ -111,17 +111,7 @@ impl Asciicast {
     }
 }
 
-impl AnyBase for Asciicast {
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-    fn as_any_mut(&mut self) -> &mut dyn Any {
-        self
-    }
-    fn into_any(self: Box<Self>) -> Box<dyn Any> {
-        self
-    }
-}
+impl_any!(Asciicast);
 
 impl Tty for Asciicast {
     fn read(&mut self) -> Result<Vec<u8>, Box<dyn Error>> {
@@ -163,30 +153,6 @@ impl Tty for Asciicast {
             let mut inner = inner.lock().unwrap();
             inner.write(data)
         }
-    }
-}
-
-struct DummyTty {}
-impl AnyBase for DummyTty {
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-    fn as_any_mut(&mut self) -> &mut dyn Any {
-        self
-    }
-    fn into_any(self: Box<Self>) -> Box<dyn Any> {
-        self
-    }
-}
-impl Tty for DummyTty {
-    fn read(&mut self) -> Result<Vec<u8>, Box<dyn Error>> {
-        Ok(Vec::new())
-    }
-    fn read_line(&mut self) -> Result<Vec<u8>, Box<dyn Error>> {
-        Ok(Vec::new())
-    }
-    fn write(&mut self, _data: &[u8]) -> Result<(), Box<dyn Error>> {
-        Ok(())
     }
 }
 

@@ -1,5 +1,4 @@
 use std::{
-    any::Any,
     error::Error,
     io::{ErrorKind, Read, Write},
     net::TcpStream,
@@ -12,7 +11,7 @@ use std::{
 use ssh2::Channel;
 
 use crate::{
-    consts::SHELL_DURATION, err, log, util::anybase::AnyBase
+    consts::SHELL_DURATION, err, impl_any, log
 };
 
 use super::tty::Tty;
@@ -129,17 +128,7 @@ impl Ssh {
     }
 }
 
-impl AnyBase for Ssh {
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-    fn as_any_mut(&mut self) -> &mut dyn Any {
-        self
-    }
-    fn into_any(self: Box<Self>) -> Box<dyn Any> {
-        self
-    }
-}
+impl_any!(Ssh);
 
 impl Tty for Ssh {
     fn read(&mut self) -> Result<Vec<u8>, Box<dyn Error>> {

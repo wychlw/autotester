@@ -16,9 +16,9 @@
 //! ```
 //!
 
-use std::{any::Any, fs::File, io::Write};
+use std::{fs::File, io::Write};
 
-use crate::{info, util::anybase::AnyBase};
+use crate::{impl_any, info};
 
 use super::tty::{DynTty, Tty, WrapperTty};
 
@@ -43,17 +43,7 @@ impl Tee {
     }
 }
 
-impl AnyBase for Tee {
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-    fn as_any_mut(&mut self) -> &mut dyn Any {
-        self
-    }
-    fn into_any(self: Box<Self>) -> Box<dyn Any> {
-        self
-    }
-}
+impl_any!(Tee);
 
 impl Tty for Tee {
     fn read(&mut self) -> Result<Vec<u8>, Box<dyn std::error::Error>> {

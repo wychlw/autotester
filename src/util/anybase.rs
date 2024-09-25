@@ -1,9 +1,30 @@
-use std::any::Any;
+use std::{any::Any, rc::Rc};
 
-pub trait AnyBase {
+pub trait AnyBase: Any {
     fn as_any(&self) -> &dyn Any;
     fn as_any_mut(&mut self) -> &mut dyn Any;
     fn into_any(self: Box<Self>) -> Box<dyn Any>;
+    fn into_any_rc(self: Rc<Self>) -> Rc<dyn Any>;
+}
+
+#[macro_export]
+macro_rules! impl_any {
+    ($name: ident) => {
+        impl $crate::util::anybase::AnyBase for $name {
+            fn as_any(&self) -> &dyn std::any::Any {
+                self
+            }
+            fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
+                self
+            }
+            fn into_any(self: Box<Self>) -> Box<dyn std::any::Any> {
+                self
+            }
+            fn into_any_rc(self: std::rc::Rc<Self>) -> std::rc::Rc<dyn std::any::Any> {
+                self
+            }
+        }
+    };
 }
 
 #[macro_export]

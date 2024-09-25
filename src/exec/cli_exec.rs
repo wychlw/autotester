@@ -1,12 +1,11 @@
 use std::{
-    any::Any,
     error::Error,
     thread::sleep,
     time::{Duration, Instant},
 };
 
 use crate::{
-    cli::tty::{DynTty, Tty, WrapperTty}, consts::DURATION, err, info, util::{anybase::AnyBase, util::rand_string}
+    cli::tty::{DynTty, Tty, WrapperTty}, consts::DURATION, err, impl_any, info, util::util::rand_string
 };
 
 use super::cli_api::{CliTestApi, SudoCliTestApi};
@@ -29,17 +28,7 @@ impl CliTester {
     }
 }
 
-impl AnyBase for CliTester {
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-    fn as_any_mut(&mut self) -> &mut dyn Any {
-        self
-    }
-    fn into_any(self: Box<Self>) -> Box<dyn Any> {
-        self
-    }
-}
+impl_any!(CliTester);
 
 impl Tty for CliTester {
     // Note: This will SKIP the logic in the tester
@@ -155,17 +144,7 @@ impl SudoCliTester {
     }
 }
 
-impl AnyBase for SudoCliTester {
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-    fn as_any_mut(&mut self) -> &mut dyn Any {
-        self
-    }
-    fn into_any(self: Box<Self>) -> Box<dyn Any> {
-        self
-    }
-}
+impl_any!(SudoCliTester);
 
 impl Tty for SudoCliTester {
     // Note: This will SKIP the logic in the tester

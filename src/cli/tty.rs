@@ -2,7 +2,7 @@
 
 use std::error::Error;
 
-use crate::util::anybase::AnyBase;
+use crate::{impl_any, util::anybase::AnyBase};
 
 /// The base trait for all Tty instances
 ///
@@ -34,4 +34,18 @@ pub trait WrapperTty: Tty {
 
     /// Get a mutable reference to the inner Tty
     fn inner_mut(&mut self) -> &mut DynTty;
+}
+
+pub struct DummyTty {}
+impl_any!(DummyTty);
+impl Tty for DummyTty {
+    fn read(&mut self) -> Result<Vec<u8>, Box<dyn Error>> {
+        Ok(Vec::new())
+    }
+    fn read_line(&mut self) -> Result<Vec<u8>, Box<dyn Error>> {
+        Ok(Vec::new())
+    }
+    fn write(&mut self, _data: &[u8]) -> Result<(), Box<dyn Error>> {
+        Ok(())
+    }
 }

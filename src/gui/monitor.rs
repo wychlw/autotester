@@ -5,7 +5,7 @@ use std::error::Error;
 use enigo::{Axis, Button, Coordinate, Direction, Enigo, Keyboard, Mouse, Settings};
 use image::RgbaImage;
 
-use crate::util::anybase::AnyBase;
+use crate::impl_any;
 
 use super::screen::Screen;
 
@@ -34,17 +34,7 @@ impl Monitor {
     }
 }
 
-impl AnyBase for Monitor {
-    fn as_any(&self) -> &dyn std::any::Any {
-        self
-    }
-    fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
-        self
-    }
-    fn into_any(self: Box<Self>) -> Box<dyn std::any::Any> {
-        self
-    }
-}
+impl_any!(Monitor);
 
 impl Screen for Monitor {
     fn size(&self) -> (u32, u32) {

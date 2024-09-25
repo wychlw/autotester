@@ -5,8 +5,7 @@ use pyo3::{
 };
 
 use crate::{
-    cli::tty::Tty,
-    util::anybase::{heap_raw, AnyBase},
+    cli::tty::Tty, impl_any, util::anybase::heap_raw
 };
 
 use super::shell_like::{PyTty, PyTtyWrapper};
@@ -33,17 +32,7 @@ impl TtyHook {
     }
 }
 
-impl AnyBase for TtyHook {
-    fn as_any(&self) -> &dyn std::any::Any {
-        self
-    }
-    fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
-        self
-    }
-    fn into_any(self: Box<Self>) -> Box<dyn std::any::Any> {
-        self
-    }
-}
+impl_any!(TtyHook);
 
 impl Tty for TtyHook {
     fn read(&mut self) -> Result<Vec<u8>, Box<dyn Error>> {

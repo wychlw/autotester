@@ -2,7 +2,6 @@ use portable_pty::{native_pty_system, Child, CommandBuilder, PtyPair, PtySize};
 use std::io::{BufReader, Read};
 use std::ops::DerefMut;
 use std::{
-    any::Any,
     error::Error,
     io::Write,
     sync::{Arc, Mutex},
@@ -10,8 +9,9 @@ use std::{
     time::Duration,
 };
 
+use crate::impl_any;
 use crate::util::util::try_read;
-use crate::{consts::SHELL_DURATION, err, info, log, util::anybase::AnyBase};
+use crate::{consts::SHELL_DURATION, err, info, log};
 
 use super::tty::Tty;
 
@@ -114,17 +114,7 @@ impl Shell {
     }
 }
 
-impl AnyBase for Shell {
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-    fn as_any_mut(&mut self) -> &mut dyn Any {
-        self
-    }
-    fn into_any(self: Box<Self>) -> Box<dyn Any> {
-        self
-    }
-}
+impl_any!(Shell);
 
 impl Tty for Shell {
     fn read(&mut self) -> Result<Vec<u8>, Box<dyn Error>> {

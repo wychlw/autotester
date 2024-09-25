@@ -1,7 +1,7 @@
 //! Executor gor GUI
 //!
 
-use std::{any::Any, error::Error, time::Instant};
+use std::{error::Error, time::Instant};
 
 use image::RgbaImage;
 
@@ -9,10 +9,7 @@ use crate::{
     exec::gui_handler::{
         basic_handle::basic_handle_once,
         handler_api::HandlerCollector,
-    },
-    gui::screen::{DynScreen, Screen},
-    info,
-    util::anybase::AnyBase,
+    }, gui::screen::{DynScreen, Screen}, impl_any, info
 };
 
 use super::{gui_api::GuiTestApi, needle::Needle};
@@ -27,17 +24,7 @@ impl GuiTestor {
     }
 }
 
-impl AnyBase for GuiTestor {
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-    fn as_any_mut(&mut self) -> &mut dyn Any {
-        self
-    }
-    fn into_any(self: Box<Self>) -> Box<dyn Any> {
-        self
-    }
-}
+impl_any!(GuiTestor);
 
 impl Screen for GuiTestor {
     fn size(&self) -> (u32, u32) {

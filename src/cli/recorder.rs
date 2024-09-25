@@ -1,6 +1,6 @@
-use std::{any::Any, error::Error, mem::replace};
+use std::{error::Error, mem::replace};
 
-use crate::{cli::tty::Tty, info, util::anybase::AnyBase};
+use crate::{cli::tty::Tty, impl_any, info};
 
 use super::tty::{DynTty, WrapperTty};
 
@@ -33,17 +33,7 @@ impl SimpleRecorder {
     }
 }
 
-impl AnyBase for SimpleRecorder {
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-    fn as_any_mut(&mut self) -> &mut dyn Any {
-        self
-    }
-    fn into_any(self: Box<Self>) -> Box<dyn Any> {
-        self
-    }
-}
+impl_any!(SimpleRecorder);
 
 impl Tty for SimpleRecorder {
     fn read(&mut self) -> Result<Vec<u8>, Box<dyn Error>> {

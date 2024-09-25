@@ -1,8 +1,8 @@
 //! [`DeANSI`] is a wrapper for [`Tty`] that removes ANSI escape sequences from the input and output.
 
-use std::{any::Any, error::Error};
+use std::error::Error;
 
-use crate::{util::anybase::AnyBase, vendor::strip_ansi_escapes};
+use crate::{impl_any, vendor::strip_ansi_escapes};
 
 use super::tty::{DynTty, Tty, WrapperTty};
 
@@ -18,17 +18,7 @@ impl DeANSI {
     }
 }
 
-impl AnyBase for DeANSI {
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-    fn as_any_mut(&mut self) -> &mut dyn Any {
-        self
-    }
-    fn into_any(self: Box<Self>) -> Box<dyn Any> {
-        self
-    }
-}
+impl_any!(DeANSI);
 
 impl Tty for DeANSI {
     /// Read data from the Tty

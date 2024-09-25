@@ -5,12 +5,12 @@
 //! This version may not log the output at the same time as the output goes into the terminal.
 
 
-use std::{any::Any, collections::HashMap, error::Error, mem::replace, time::SystemTime};
+use std::{collections::HashMap, error::Error, mem::replace, time::SystemTime};
 
 use asciicast::{Entry, EventType, Header};
 use serde_json::to_string;
 
-use crate::{info, util::anybase::AnyBase};
+use crate::{impl_any, info};
 
 use super::{
     recorder::Recorder,
@@ -50,17 +50,7 @@ impl Asciicast {
     }
 }
 
-impl AnyBase for Asciicast {
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-    fn as_any_mut(&mut self) -> &mut dyn Any {
-        self
-    }
-    fn into_any(self: Box<Self>) -> Box<dyn Any> {
-        self
-    }
-}
+impl_any!(Asciicast);
 
 impl Tty for Asciicast {
     fn read(&mut self) -> Result<Vec<u8>, Box<dyn Error>> {
