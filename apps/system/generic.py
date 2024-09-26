@@ -27,18 +27,23 @@ class Generic:
         """
         Loggin to the system.
         """
+        i = 0
         self.tty.wait_serial("login:", 600)
-        slp()
-        self.tty.writeln(self.username)
-        slp()
-        slp(10) # Some system would gives you "密码" instead of "Password"... Just sleep for a while.
-        slp()
-        self.tty.writeln(self.password)
-        slp()
-        self.tty.wait_serial(self.username)
-        slp()
         try:
-            self.tty.wait_serial("Current")
+            while i < 4: # May be failed to login, try again.
+                slp(10)
+                self.tty.writeln(self.username)
+                slp()
+                slp(10) # Some system would gives you "密码" instead of "Password"... Just sleep for a while.
+                slp()
+                self.tty.writeln(self.password)
+                slp()
+                i += 1
+                self.tty.wait_serial("login:", 5)
+        except Exception as e:
+            pass
+        try:
+            self.tty.wait_serial("Current", 5)
             # Means the password is expired.
             slp()
             self.tty.writeln(self.password)

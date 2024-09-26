@@ -5,7 +5,10 @@ use std::{
 };
 
 use crate::{
-    cli::tty::{DynTty, Tty, WrapperTty}, consts::DURATION, err, impl_any, info, util::util::rand_string
+    cli::tty::{DynTty, Tty, WrapperTty},
+    consts::DURATION,
+    err, impl_any, info,
+    util::util::rand_string,
 };
 
 use super::cli_api::{CliTestApi, SudoCliTestApi};
@@ -73,7 +76,60 @@ impl CliTester {
         Ok(())
     }
 
-    fn do_wait_serial(&mut self, expected: &str, timeout: u32, filter_echo_back: Option<&str>) -> Result<String, Box<dyn Error>> {
+    fn kmp_next(&self, target: &Vec<u8>) -> Vec<usize> {
+        let mut next = vec![0usize; target.len()];
+        let mut i = 1;
+        let mut j = 0;
+        while i < target.len() - 1 {
+            if target[i] == target[j] {
+                next[i] = j + 1;
+                i += 1;
+                j += 1;
+            } else {
+                if j == 0 {
+                    next[i] = 0;
+                    i += 1;
+                } else {
+                    j = next[j - 1] as usize;
+                }
+            }
+        }
+        next
+    }
+
+    fn kmp_search(&self, content: &Vec<u8>, target: &Vec<u8>) -> Option<usize> {
+        let next = self.kmp_next(target);
+        let mut i = 0;
+        let mut j = 0;
+        let mut res = None;
+        while i < content.len() && j < target.len() {
+            if content[i] == target[j] {
+                if res.is_none() {
+                    res = Some(i);
+                }
+                i += 1;
+                j += 1;
+                if j >= target.len() {
+                    break;
+                }
+            } else {
+                if j == 0 {
+                    i += 1;
+                } else {
+                    j = next[j - 1];
+                }
+                res = None;
+            }
+        }
+        res
+    }
+
+    fn do_wait_serial(
+        &mut self,
+        expected: &str,
+        timeout: u32,
+        filter_echo_back: Option<&str>,
+    ) -> Result<String, Box<dyn Error>> {
         let begin = Instant::now();
         let mut buf = Vec::new();
         info!("Waiting for string {{{}}}", expected);
@@ -84,10 +140,14 @@ impl CliTester {
             if let Some(filter) = filter_echo_back {
                 self.filter_assert_echo(filter, &mut buf)?;
             }
-            let content = String::from_utf8(buf.clone()).unwrap_or_default();
-            if content.contains(expected) {
+            // The reason we compare raw u8 is... What if the data is corrupted?
+            let target = expected.as_bytes();
+            if let Some(pos) = self.kmp_search(&buf, &target.to_vec()) {
                 info!("Matched string {{{}}}", expected);
-                break;
+                let res = buf.split_off(pos + target.len());
+                let res = String::from_utf8(res)?;
+                buf.drain(0..pos + target.len());
+                return Ok(res);
             }
             if begin.elapsed().as_secs() > timeout as u64 {
                 err!(
@@ -98,9 +158,6 @@ impl CliTester {
                 return Err(Box::<dyn Error>::from("Timeout"));
             }
         }
-
-        let res = String::from_utf8(buf)?;
-        Ok(res)
     }
 }
 
