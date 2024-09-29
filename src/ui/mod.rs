@@ -9,3 +9,4 @@ pub mod main;
 pub mod code_editor;
 pub mod pyenv;
 pub mod terminal;
+pub mod cli_hooker;

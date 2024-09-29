@@ -7,7 +7,7 @@ use eframe::{
     run_native, App, Frame, NativeOptions,
 };
 
-use crate::info;
+use crate::{info, util::anybase::AnyBase};
 
 /// Main UI struct
 ///
@@ -107,12 +107,13 @@ impl App for MyApp {
 /// This trait is used to hold the sub window.
 /// This is because the egui is a immediate mode UI. when you display a new window, it will be shown THAT particular frame. if you need that window to stay, you need to create a new window AGAIN next frame too and egui using the window's name (or other id source), egui will internally keep track of its position / focus status etc..
 /// So, we need some way to keep track of the sub window.
-pub trait SubWindow {
+pub trait SubWindow: AnyBase {
     /// Show the window, this will be called every frame. Your window is identified by the `id` parameter.
     /// However, that doesn't mean you should change the title, as this contains the window number, useful for the user.
     fn show(&mut self, ctx: &Context, title: &str, id: &Id, open: &mut bool);
 }
 
+#[doc(hidden)]
 pub trait SubWindowCreator {
     fn name(&self) -> &str;
     fn open(&self) -> Box<dyn SubWindow>;
@@ -155,6 +156,8 @@ macro_rules! impl_sub_window {
                 create: ${concat(create_, $name)},
             }
         }
+
+        $crate::impl_any!($name);
     };
 }
 
