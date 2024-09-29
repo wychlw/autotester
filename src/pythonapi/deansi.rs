@@ -2,9 +2,9 @@ use pyo3::{exceptions::PyRuntimeError, pyclass, pymethods, PyResult};
 
 use crate::{cli::tty::Tty, util::anybase::heap_raw};
 
-use super::shell_like::{handle_wrap, PyTty, PyTtyWrapper, TtyType};
+use super::shell_like::{handle_wrap, py_tty_inner, PyTty, PyTtyInner, TtyType};
 
-pub fn handle_deansi(inner: &mut Option<PyTtyWrapper>) -> PyResult<()> {
+pub fn handle_deansi(inner: &mut Option<PyTtyInner>) -> PyResult<()> {
     if inner.is_none() {
         return Err(PyRuntimeError::new_err(
             "You must define at least one valid object",
@@ -15,9 +15,7 @@ pub fn handle_deansi(inner: &mut Option<PyTtyWrapper>) -> PyResult<()> {
     let be_wrapped = Box::into_inner(be_wrapped);
     let dean = Box::new(crate::cli::deansi::DeANSI::build(be_wrapped));
     let dean: Box<dyn Tty + Send> = dean as TtyType;
-    *inner = Some(PyTtyWrapper {
-        tty: heap_raw(dean),
-    });
+    *inner = Some(py_tty_inner(heap_raw(dean)));
     Ok(())
 }
 

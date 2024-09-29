@@ -3,14 +3,14 @@ use serde::Deserialize;
 
 use crate::util::anybase::heap_raw;
 
-use super::shell_like::{PyTty, PyTtyWrapper, TtyType};
+use super::shell_like::{py_tty_inner, PyTty, PyTtyInner, TtyType};
 
 #[derive(Deserialize)]
 pub struct ShellConf {
     pub shell: Option<String>,
 }
 
-pub fn handle_shell(inner: &mut Option<PyTtyWrapper>, shell_conf: ShellConf) -> PyResult<()> {
+pub fn handle_shell(inner: &mut Option<PyTtyInner>, shell_conf: ShellConf) -> PyResult<()> {
     let shell = shell_conf.shell.as_deref();
     let shell = crate::cli::shell::Shell::build(shell)
         .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
@@ -20,9 +20,7 @@ pub fn handle_shell(inner: &mut Option<PyTtyWrapper>, shell_conf: ShellConf) -> 
         ));
     }
     let shell = Box::new(shell) as TtyType;
-    *inner = Some(PyTtyWrapper {
-        tty: heap_raw(shell),
-    });
+    *inner = Some(py_tty_inner(heap_raw(shell)));
     Ok(())
 }
 
@@ -37,11 +35,6 @@ impl Shell {
         let shell = crate::cli::shell::Shell::build(shell)
             .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
         let shell = Box::new(shell) as TtyType;
-        Ok((
-            Shell {},
-            PyTty::build(PyTtyWrapper {
-                tty: heap_raw(shell),
-            }),
-        ))
+        Ok((Shell {}, PyTty::build(py_tty_inner(heap_raw(shell)))))
     }
 }

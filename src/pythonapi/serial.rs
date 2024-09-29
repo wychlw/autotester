@@ -2,7 +2,7 @@ use pyo3::{exceptions::PyRuntimeError, pyclass, pymethods, PyResult};
 
 use crate::util::anybase::heap_raw;
 
-use super::shell_like::{PyTty, PyTtyWrapper, TtyType};
+use super::shell_like::{py_tty_inner, PyTty, TtyType};
 
 #[pyclass(extends=PyTty, subclass)]
 pub struct Serial {}
@@ -15,11 +15,6 @@ impl Serial {
         let serial = crate::cli::serial::Serial::build(port, baud)
             .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
         let serial = Box::new(serial) as TtyType;
-        Ok((
-            Serial {},
-            PyTty::build(PyTtyWrapper {
-                tty: heap_raw(serial),
-            }),
-        ))
+        Ok((Serial {}, PyTty::build(py_tty_inner(heap_raw(serial)))))
     }
 }

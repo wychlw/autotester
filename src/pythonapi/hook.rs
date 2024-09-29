@@ -1,25 +1,21 @@
 use std::error::Error;
 
 use pyo3::{
-    pyfunction, types::{PyByteArray, PyByteArrayMethods}, Py, PyAny, Python
+    pyfunction,
+    types::{PyByteArray, PyByteArrayMethods},
+    Py, PyAny, Python,
 };
 
-use crate::{
-    cli::tty::Tty, impl_any, util::anybase::heap_raw
-};
+use crate::{cli::tty::Tty, impl_any, util::anybase::heap_raw};
 
-use super::shell_like::{PyTty, PyTtyWrapper};
+use super::shell_like::{py_tty_inner, PyTty};
 
 #[pyfunction]
 pub fn build_ttyhook(inner: Py<PyAny>) -> PyTty {
     let inner = TtyHook::build(inner);
     let inner = Box::new(inner);
-    let inner = PyTtyWrapper {
-        tty: heap_raw(inner)
-    };
-    PyTty {
-        inner
-    }
+    let inner = py_tty_inner(heap_raw(inner));
+    PyTty { inner }
 }
 
 pub struct TtyHook {

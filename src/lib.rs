@@ -1,6 +1,7 @@
 #![feature(box_into_inner)]
 #![feature(macro_metavar_expr_concat)]
 #![allow(clippy::module_inception)]
+#![feature(new_range_api)]
 
 pub mod consts;
 pub mod cli;

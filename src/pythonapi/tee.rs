@@ -3,14 +3,14 @@ use serde::Deserialize;
 
 use crate::util::anybase::heap_raw;
 
-use super::shell_like::{handle_wrap, PyTty, PyTtyWrapper, TtyType};
+use super::shell_like::{handle_wrap, py_tty_inner, PyTty, PyTtyInner, TtyType};
 
 #[derive(Deserialize)]
 pub struct PyTeeConf {
     pub path: String,
 }
 
-pub fn handle_tee(inner: &mut Option<PyTtyWrapper>, tee_conf: PyTeeConf) -> PyResult<()> {
+pub fn handle_tee(inner: &mut Option<PyTtyInner>, tee_conf: PyTeeConf) -> PyResult<()> {
     let path = tee_conf.path;
     if inner.is_none() {
         return Err(PyRuntimeError::new_err(
@@ -22,7 +22,7 @@ pub fn handle_tee(inner: &mut Option<PyTtyWrapper>, tee_conf: PyTeeConf) -> PyRe
     let be_wrapped = Box::into_inner(be_wrapped);
     let tee = Box::new(crate::cli::tee::Tee::build(be_wrapped, &path));
     let tee = tee as TtyType;
-    *inner = Some(PyTtyWrapper { tty: heap_raw(tee) });
+    *inner = Some(py_tty_inner(heap_raw(tee)));
     Ok(())
 }
 

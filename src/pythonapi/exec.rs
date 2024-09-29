@@ -9,20 +9,15 @@ use crate::{
     util::anybase::heap_raw,
 };
 
-use super::shell_like::{handle_wrap, PyTty, PyTtyWrapper, TtyType};
+use super::shell_like::{handle_wrap, py_tty_inner, PyTty, PyTtyInner, TtyType};
 
-pub fn handle_clitester(inner: &mut Option<PyTtyWrapper>, need_sudo: Option<bool>) -> PyResult<()> {
+pub fn handle_clitester(inner: &mut Option<PyTtyInner>, need_sudo: Option<bool>) -> PyResult<()> {
     if inner.is_none() {
         return Err(PyRuntimeError::new_err(
             "You must define at least one valid object",
         ));
     }
     let mut be_wrapped = inner.take().unwrap();
-    if be_wrapped.tty.is_null() {
-        return Err(PyRuntimeError::new_err(
-            "You gave me it, you will never own it again.",
-        ));
-    }
     let tty = be_wrapped.safe_take()?;
     let tty = Box::into_inner(tty);
     let need_sudo = need_sudo.unwrap_or(true);
@@ -33,7 +28,7 @@ pub fn handle_clitester(inner: &mut Option<PyTtyWrapper>, need_sudo: Option<bool
         let res = Box::new(CliTester::build(tty));
         res as TtyType
     };
-    *inner = Some(PyTtyWrapper { tty: heap_raw(res) });
+    *inner = Some(py_tty_inner(heap_raw(res)));
     Ok(())
 }
 

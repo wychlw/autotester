@@ -2,9 +2,9 @@ use pyo3::{exceptions::PyRuntimeError, pyclass, pymethods, PyResult};
 
 use crate::util::anybase::heap_raw;
 
-use super::shell_like::{handle_wrap, PyTty, PyTtyWrapper, TtyType};
+use super::shell_like::{handle_wrap, py_tty_inner, PyTty, PyTtyInner, TtyType};
 
-pub fn handle_asciicast(inner: &mut Option<PyTtyWrapper>) -> PyResult<()> {
+pub fn handle_asciicast(inner: &mut Option<PyTtyInner>) -> PyResult<()> {
     if inner.is_none() {
         return Err(PyRuntimeError::new_err(
             "You must define at least one valid object",
@@ -15,7 +15,7 @@ pub fn handle_asciicast(inner: &mut Option<PyTtyWrapper>) -> PyResult<()> {
     let be_wrapped = Box::into_inner(be_wrapped);
     let tee = Box::new(crate::cli::asciicast::Asciicast::build(be_wrapped));
     let tee = tee as TtyType;
-    *inner = Some(PyTtyWrapper { tty: heap_raw(tee) });
+    *inner = Some(py_tty_inner(heap_raw(tee)));
     Ok(())
 }
 

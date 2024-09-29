@@ -26,12 +26,20 @@ use super::{
 
 pub type TtyType = DynTty;
 
-pub struct PyTtyWrapper {
-    pub tty: *mut TtyType,
+pub trait PyTtyWrapper: Send {
+    fn take(&mut self) -> PyResult<*mut TtyType>;
+    fn safe_take(&mut self) -> PyResult<Box<TtyType>>;
+    fn get(&self) -> PyResult<&TtyType>;
+    fn get_mut(&mut self) -> PyResult<&mut TtyType>;
+    fn put(&mut self, tty: *mut TtyType) -> PyResult<()>;
 }
 
-impl PyTtyWrapper {
-    pub fn take(&mut self) -> PyResult<*mut TtyType> {
+pub struct PyTtyWrapperBasic {
+    tty: *mut TtyType,
+}
+
+impl PyTtyWrapper for PyTtyWrapperBasic {
+    fn take(&mut self) -> PyResult<*mut TtyType> {
         if self.tty.is_null() {
             return Err(PyRuntimeError::new_err(
                 "You gave me it, you will never own it again.",
@@ -41,11 +49,11 @@ impl PyTtyWrapper {
         self.tty = null_mut();
         Ok(res)
     }
-    pub fn safe_take(&mut self) -> PyResult<Box<TtyType>> {
+    fn safe_take(&mut self) -> PyResult<Box<TtyType>> {
         let res = self.take()?;
         Ok(unsafe { Box::from_raw(res) })
     }
-    pub fn get(&self) -> PyResult<&TtyType> {
+    fn get(&self) -> PyResult<&TtyType> {
         if self.tty.is_null() {
             return Err(PyRuntimeError::new_err(
                 "You gave me it, you will never own it again.",
@@ -53,7 +61,7 @@ impl PyTtyWrapper {
         }
         Ok(unsafe { &*self.tty })
     }
-    pub fn get_mut(&self) -> PyResult<&mut TtyType> {
+    fn get_mut(&mut self) -> PyResult<&mut TtyType> {
         if self.tty.is_null() {
             return Err(PyRuntimeError::new_err(
                 "You gave me it, you will never own it again.",
@@ -61,17 +69,35 @@ impl PyTtyWrapper {
         }
         Ok(unsafe { &mut *self.tty })
     }
+    fn put(&mut self, tty: *mut TtyType) -> PyResult<()> {
+        if !self.tty.is_null() {
+            return Err(PyRuntimeError::new_err(
+                "You must take the object before you put another one.",
+            ));
+        }
+        self.tty = tty;
+        Ok(())  
+    }
 }
 
-unsafe impl Send for PyTtyWrapper {}
+unsafe impl Send for PyTtyWrapperBasic {}
+unsafe impl Sync for PyTtyWrapperBasic {}
+
+pub type PyTtyInner = Box<dyn PyTtyWrapper + Send + Sync>;
+
+pub fn py_tty_inner(tty: *mut TtyType) -> PyTtyInner {
+    let inner = PyTtyWrapperBasic { tty };
+    let inner = Box::new(inner);
+    inner as PyTtyInner
+}
 
 #[pyclass(subclass)]
 pub struct PyTty {
-    pub inner: PyTtyWrapper,
+    pub inner: PyTtyInner,
 }
 
 impl PyTty {
-    pub fn build(inner: PyTtyWrapper) -> Self {
+    pub fn build(inner: PyTtyInner) -> Self {
         PyTty { inner }
     }
 }
@@ -95,10 +121,7 @@ struct PyTtyExecConf {
     sudo: Option<bool>,
 }
 
-pub fn handle_wrap(
-    inner: &mut Option<PyTtyWrapper>,
-    be_wrapped: Option<&mut PyTty>,
-) -> PyResult<()> {
+pub fn handle_wrap(inner: &mut Option<PyTtyInner>, be_wrapped: Option<&mut PyTty>) -> PyResult<()> {
     if be_wrapped.is_none() {
         return Err(PyRuntimeError::new_err(
             "be_wrapped must be provided when wrap is true",
@@ -106,13 +129,11 @@ pub fn handle_wrap(
     }
     let be_wrapped = be_wrapped.unwrap();
 
-    *inner = Some(PyTtyWrapper {
-        tty: be_wrapped.inner.take()?,
-    });
+    *inner = Some(py_tty_inner(be_wrapped.inner.take()?));
     Ok(())
 }
 
-pub fn handle_simple_recorder(inner: &mut Option<PyTtyWrapper>) -> PyResult<()> {
+pub fn handle_simple_recorder(inner: &mut Option<PyTtyInner>) -> PyResult<()> {
     if inner.is_none() {
         return Err(PyRuntimeError::new_err(
             "You must define at least one valid object",
@@ -123,9 +144,7 @@ pub fn handle_simple_recorder(inner: &mut Option<PyTtyWrapper>) -> PyResult<()> 
     let tty = Box::into_inner(tty);
     let recorder = Box::new(SimpleRecorder::build(tty));
     let recorder = recorder as TtyType;
-    *inner = Some(PyTtyWrapper {
-        tty: heap_raw(recorder),
-    });
+    *inner = Some(py_tty_inner(heap_raw(recorder)));
 
     Ok(())
 }
@@ -219,49 +238,37 @@ impl PyTty {
             let inner = inner.downcast::<SimpleRecorder>().unwrap();
             let inner = inner.exit();
             Ok(PyTty {
-                inner: PyTtyWrapper {
-                    tty: heap_raw(inner),
-                },
+                inner: py_tty_inner(heap_raw(inner)),
             })
         } else if inner.downcast_ref::<Asciicast>().is_some() {
             let inner = inner.downcast::<Asciicast>().unwrap();
             let inner = inner.exit();
             Ok(PyTty {
-                inner: PyTtyWrapper {
-                    tty: heap_raw(inner),
-                },
+                inner: py_tty_inner(heap_raw(inner)),
             })
         } else if inner.downcast_ref::<DeANSI>().is_some() {
             let inner = inner.downcast::<DeANSI>().unwrap();
             let inner = inner.exit();
             Ok(PyTty {
-                inner: PyTtyWrapper {
-                    tty: heap_raw(inner),
-                },
+                inner: py_tty_inner(heap_raw(inner)),
             })
         } else if inner.downcast_ref::<Tee>().is_some() {
             let inner = inner.downcast::<Tee>().unwrap();
             let inner = inner.exit();
             Ok(PyTty {
-                inner: PyTtyWrapper {
-                    tty: heap_raw(inner),
-                },
+                inner: py_tty_inner(heap_raw(inner)),
             })
         } else if inner.downcast_ref::<CliTester>().is_some() {
             let inner = inner.downcast::<CliTester>().unwrap();
             let inner = inner.exit();
             Ok(PyTty {
-                inner: PyTtyWrapper {
-                    tty: heap_raw(inner),
-                },
+                inner: py_tty_inner(heap_raw(inner)),
             })
         } else if inner.downcast_ref::<SudoCliTester>().is_some() {
             let inner = inner.downcast::<SudoCliTester>().unwrap();
             let inner = inner.exit();
             Ok(PyTty {
-                inner: PyTtyWrapper {
-                    tty: heap_raw(inner),
-                },
+                inner: py_tty_inner(heap_raw(inner)),
             })
         } else {
             Err(PyRuntimeError::new_err(
@@ -369,7 +376,7 @@ impl PyTty {
                 return Err(PyRuntimeError::new_err(e.to_string()));
             }
             let target = target.unwrap();
-            other.inner.tty = heap_raw(target);
+            other.inner.put(heap_raw(target))?;
             Ok(())
         } else if inner.downcast_ref::<Asciicast>().is_some() {
             let inner = inner.downcast_mut::<Asciicast>().unwrap();
@@ -380,7 +387,7 @@ impl PyTty {
                 return Err(PyRuntimeError::new_err(e.to_string()));
             }
             let target = target.unwrap();
-            other.inner.tty = heap_raw(target);
+            other.inner.put(heap_raw(target))?;
             Ok(())
         } else {
             Err(PyRuntimeError::new_err(
