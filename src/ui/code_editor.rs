@@ -18,6 +18,7 @@ impl Default for CodeEditor {
         Self {
             code: "\
 from tester import *
+from tester.ui import *
 
 print('Hello, world!')
 ".to_string(),

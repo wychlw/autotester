@@ -1,6 +1,8 @@
 //! Main UI render for the APP
 
-use std::error::Error;
+use std::{
+    error::Error, thread::sleep, time::Duration,
+};
 
 use eframe::{
     egui::{Context, Id, SidePanel, Ui, ViewportBuilder},
@@ -35,11 +37,11 @@ impl AppUi {
     }
 }
 
-struct SubWindowHolder {
-    window: Box<dyn SubWindow>,
-    id: Id,
-    title: String,
-    open: bool,
+pub struct SubWindowHolder {
+    pub window: Box<dyn SubWindow>,
+    pub id: Id,
+    pub title: String,
+    pub open: bool,
 }
 
 struct MyApp {
@@ -75,7 +77,9 @@ impl MyApp {
                     let id = Id::new(self.sub_window_idx);
                     info!("Try create sub window: {}", title);
                     self.sub_window_idx += 1;
-                    self.sub_windows.push(SubWindowHolder {
+                    sleep(Duration::from_millis(5));
+                    let sub_windows = &mut self.sub_windows;
+                    sub_windows.push(SubWindowHolder {
                         window: creator.open(),
                         id,
                         title,
@@ -83,9 +87,13 @@ impl MyApp {
                     });
                 }
             }
-            self.sub_windows.retain(|w| w.open);
-            for w in &mut self.sub_windows {
-                w.window.show(ctx, &w.title, &w.id, &mut w.open);
+            {
+                sleep(Duration::from_millis(5));
+                let sub_windows = &mut self.sub_windows;
+                sub_windows.retain(|w| w.open);
+                for w in sub_windows.iter_mut() {
+                    w.window.show(ctx, &w.title, &w.id, &mut w.open);
+                }
             }
         });
     }
@@ -120,15 +128,15 @@ pub trait SubWindowCreator {
 }
 
 /// Snippet to register a sub window
-/// 
+///
 /// # Arguments
 /// $name: The struct name of the sub window
 /// $window_name: The name of the window, will become the title of the window
-/// 
+///
 /// # Example
 /// `impl_sub_window!(TestUiStruct, "TestUiName");`
 /// where TestUiStruct implements SubWindow trait and Default trait
-/// 
+///
 /// # Notice
 /// If you found rust-analyzer gives "invalid metavariable expression", this is a nightly feature, you can ignore it. It will work.
 /// The problem is on `${concat()}` macro. Just suppress it.

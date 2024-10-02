@@ -1,3 +1,5 @@
+//! The implementation of the CLI tester. Look at [`CliTestApi`] for more information.
+
 use std::{
     error::Error,
     thread::sleep,
