@@ -1,3 +1,5 @@
+//! The implementation of the CLI tester. Look at [`CliTestApi`] for more information.
+
 use std::{
     error::Error,
     thread::sleep,
@@ -167,7 +169,7 @@ impl CliTestApi for CliTester {
     }
     fn script_run(&mut self, script: &str, timeout: u32) -> Result<String, Box<dyn Error>> {
         let mut cmd = script.to_owned();
-        let echo_content_rand = String::from_utf8(rand_string(8)).unwrap();
+        let echo_content_rand = rand_string(8);
 
         cmd += " && echo ";
         cmd += &echo_content_rand;

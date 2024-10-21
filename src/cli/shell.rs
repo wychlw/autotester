@@ -62,6 +62,7 @@ impl Shell {
                 let stop: std::sync::MutexGuard<'_, bool> = stop.lock().unwrap();
                 if *stop {
                     log!("Stop shell process");
+                    break;
                 }
             }
             let mut buf = Vec::new();

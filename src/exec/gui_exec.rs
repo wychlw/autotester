@@ -1,4 +1,4 @@
-//! Executor gor GUI
+//! Executor for GUI. Look at [`GuiTestApi`] for more details.
 //!
 
 use std::{error::Error, time::Instant};

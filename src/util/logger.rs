@@ -7,7 +7,7 @@ pub enum LogLevel {
     Error = 30,
 }
 
-static mut LOG_LEVEL: i32 = LogLevel::Info as i32;
+static mut LOG_LEVEL: i32 = LogLevel::Debug as i32;
 
 fn __get_log_level() -> i32 {
     unsafe { LOG_LEVEL }

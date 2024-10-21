@@ -11,7 +11,7 @@ pub mod util;
 
 pub mod sdwirec;
 
-pub mod pylogger;
+mod pylogger;
 pub mod asciicast;
 
 pub mod deansi;
@@ -28,6 +28,8 @@ use shell::Shell;
 use tee::Tee;
 use shell_like::PyTty;
 use util::{get_log_level, run_ui, set_log_level};
+
+use crate::ui::register_ui;
 
 #[pymodule]
 #[pyo3(name = "tester")]
@@ -51,6 +53,8 @@ fn tester(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(log, m)?)?;
     m.add_function(wrap_pyfunction!(warn, m)?)?;
     m.add_function(wrap_pyfunction!(err, m)?)?;
+
+    register_ui(m)?;
 
     Ok(())
 }

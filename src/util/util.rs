@@ -12,11 +12,16 @@ macro_rules! unfinished {
     };
 }
 
-pub fn rand_string(len: usize) -> Vec<u8> {
+pub fn rand_u8(len: usize) -> Vec<u8> {
     thread_rng()
         .sample_iter(&Alphanumeric)
         .take(len)
         .collect::<Vec<u8>>()
+}
+
+
+pub fn rand_string(len: usize) -> String {
+    String::from_utf8(rand_u8(len)).unwrap()
 }
 
 pub fn try_read<R: BufRead + ?Sized>(
