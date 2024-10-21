@@ -1,13 +1,16 @@
 //! Main UI render for the APP
 
-use std::error::Error;
+use std::{error::Error, thread::sleep, time::Duration};
 
 use eframe::{
     egui::{Context, Id, SidePanel, Ui, ViewportBuilder},
     run_native, App, Frame, NativeOptions,
 };
+use interprocess::local_socket::{Listener, Stream};
 
 use crate::{info, util::anybase::AnyBase};
+
+use super::ipc::init_ipc;
 
 /// Main UI struct
 ///
@@ -35,17 +38,19 @@ impl AppUi {
     }
 }
 
-struct SubWindowHolder {
-    window: Box<dyn SubWindow>,
-    id: Id,
-    title: String,
-    open: bool,
+pub struct SubWindowHolder {
+    pub window: Box<dyn SubWindow>,
+    pub id: Id,
+    pub idx: u64,
+    pub title: String,
+    pub open: bool,
 }
 
-struct MyApp {
+pub struct MyApp {
     sub_window_creator: Vec<Box<DynSubWindowCreator>>, // We ensure that the sub windows only work in the main thread
-    sub_windows: Vec<SubWindowHolder>,
+    pub(super) sub_windows: Vec<SubWindowHolder>,
     sub_window_idx: usize,
+    pub(super) listener: Listener,
 }
 
 impl Default for MyApp {
@@ -60,6 +65,7 @@ impl Default for MyApp {
             sub_window_creator,
             sub_windows: Vec::new(),
             sub_window_idx: 0,
+            listener: init_ipc().unwrap(),
         }
     }
 }
@@ -71,21 +77,29 @@ impl MyApp {
             for creator in &self.sub_window_creator {
                 let name = creator.name();
                 if ui.button(name).clicked() {
-                    let title = format!("{}: {}", name, self.sub_window_idx);
-                    let id = Id::new(self.sub_window_idx);
-                    info!("Try create sub window: {}", title);
+                    let idx = self.sub_window_idx as u64;
                     self.sub_window_idx += 1;
-                    self.sub_windows.push(SubWindowHolder {
+                    let title = format!("{}: {}", name, idx);
+                    let id = Id::new(idx);
+                    info!("Try create sub window: {}", title);
+                    sleep(Duration::from_millis(5));
+                    let sub_windows = &mut self.sub_windows;
+                    sub_windows.push(SubWindowHolder {
                         window: creator.open(),
                         id,
+                        idx,
                         title,
                         open: true,
                     });
                 }
             }
-            self.sub_windows.retain(|w| w.open);
-            for w in &mut self.sub_windows {
-                w.window.show(ctx, &w.title, &w.id, &mut w.open);
+            {
+                sleep(Duration::from_millis(5));
+                let sub_windows = &mut self.sub_windows;
+                sub_windows.retain(|w| w.open);
+                for w in sub_windows.iter_mut() {
+                    w.window.show(ctx, &w.title, &w.id, &mut w.open);
+                }
             }
         });
     }
@@ -94,6 +108,7 @@ impl MyApp {
 impl App for MyApp {
     fn update(&mut self, ctx: &Context, frame: &mut Frame) {
         let _ = frame;
+        self.handle_ipc();
         SidePanel::right("SubWindow Panel")
             .default_width(200.0)
             .show(ctx, |ui| {
@@ -111,6 +126,10 @@ pub trait SubWindow: AnyBase {
     /// Show the window, this will be called every frame. Your window is identified by the `id` parameter.
     /// However, that doesn't mean you should change the title, as this contains the window number, useful for the user.
     fn show(&mut self, ctx: &Context, title: &str, id: &Id, open: &mut bool);
+
+    /// For IPC, this will be called when the IPC message is received.
+    /// The message is a string, you can use it as you like.
+    fn on_ipc(&mut self, msg: &str, stream: &mut Stream);
 }
 
 #[doc(hidden)]
@@ -120,15 +139,15 @@ pub trait SubWindowCreator {
 }
 
 /// Snippet to register a sub window
-/// 
+///
 /// # Arguments
 /// $name: The struct name of the sub window
 /// $window_name: The name of the window, will become the title of the window
-/// 
+///
 /// # Example
 /// `impl_sub_window!(TestUiStruct, "TestUiName");`
 /// where TestUiStruct implements SubWindow trait and Default trait
-/// 
+///
 /// # Notice
 /// If you found rust-analyzer gives "invalid metavariable expression", this is a nightly feature, you can ignore it. It will work.
 /// The problem is on `${concat()}` macro. Just suppress it.

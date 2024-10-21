@@ -1,11 +1,9 @@
 use std::{
     cmp::{max, min},
     error::Error,
+    io::{BufRead, BufReader, ErrorKind},
     ops::Range,
-    sync::{
-        mpsc::{self, Receiver, Sender},
-        Arc, Mutex,
-    },
+    sync::{Arc, Mutex},
     thread::{sleep, spawn, JoinHandle},
     time::Duration,
 };
@@ -13,21 +11,19 @@ use std::{
 use eframe::egui::{
     scroll_area::ScrollBarVisibility, Context, FontId, Id, RichText, ScrollArea, Ui, Window,
 };
+use interprocess::local_socket::{
+    traits::ListenerExt, GenericNamespaced, Listener, ListenerNonblockingMode, ListenerOptions,
+    Stream, ToNsName,
+};
 
-use crate::{consts::DURATION, impl_sub_window};
+use crate::{consts::DURATION, err, impl_sub_window, info, log, ui::ipc::main_send_msg};
 
-use super::main::SubWindow;
-
-pub enum TerminalMessage {
-    Data(Vec<u8>),
-    Close,
-}
+use super::{ipc::WindowIpcMessage, main::SubWindow, ui_cli_exec::UiCliIpcMsg};
 
 pub struct Terminal {
     size: (u32, u32),
     buf: Arc<Mutex<Vec<u8>>>,
-    send: Arc<Mutex<Option<Sender<TerminalMessage>>>>, // Only Close will be sent, indicating that the terminal is closed
-    recv: Arc<Mutex<Option<Receiver<TerminalMessage>>>>,
+    listener: Arc<Mutex<Option<Listener>>>,
     handle: Option<JoinHandle<()>>,
     stop: Arc<Mutex<bool>>,
 }
@@ -40,15 +36,13 @@ impl Default for Terminal {
         let mut res = Terminal {
             size: (24, 80),
             buf,
-            send: Arc::new(Mutex::new(None)),
-            recv: Arc::new(Mutex::new(None)),
+            listener: Arc::new(Mutex::new(None)),
             handle: None,
             stop: Arc::new(Mutex::new(false)),
         };
 
         let buf = res.buf.clone();
-        let send = res.send.clone();
-        let recv = res.recv.clone();
+        let listener = res.listener.clone();
         let stop = res.stop.clone();
 
         let handler = spawn(move || loop {
@@ -59,28 +53,66 @@ impl Default for Terminal {
                     break;
                 }
             }
-            let mut recv_o = recv.lock().unwrap();
-            if recv_o.is_none() {
-                continue;
-            }
-            let recv = recv_o.as_mut().unwrap();
-            match recv.try_recv() {
-                Ok(TerminalMessage::Data(data)) => {
-                    let mut buf = buf.lock().unwrap();
-                    buf.extend(data);
-                }
-                Ok(TerminalMessage::Close) => {
-                    let mut send_o = send.lock().unwrap();
-                    let send = send_o.as_ref().unwrap();
-                    send.send(TerminalMessage::Close).unwrap();
-                    recv_o.take();
-                    send_o.take();
-                    let mut buf = buf.lock().unwrap();
-                    buf.clear();
-                    buf.extend(b"Hello, world!\n");
-                }
-                Err(_) => {
+            {
+                let mut _listener = listener.lock().unwrap();
+                if _listener.is_none() {
                     continue;
+                }
+                let listener = _listener.as_mut().unwrap();
+                let mut end = false;
+                for m in listener.incoming() {
+                    match m {
+                        Err(e) if e.kind() == ErrorKind::WouldBlock => {
+                            break;
+                        }
+                        Err(e) => {
+                            err!("IPC error: {}", e);
+                            continue;
+                        }
+                        Ok(m) => {
+                            let mut reader = BufReader::new(m);
+                            let mut b = String::new();
+                            match reader.read_line(&mut b) {
+                                // Err(e) if e.kind() == ErrorKind::WouldBlock => {
+                                //     break;
+                                // }
+                                Err(e) => {
+                                    err!("IPC Read error: {}", e);
+                                    continue;
+                                }
+                                Ok(_) => {}
+                            };
+                            info!("Terminal got message: {:?}", b);
+                            let msg: UiCliIpcMsg = match serde_json::from_str(&b) {
+                                Err(e) => {
+                                    err!("IPC message decode error: {}", e);
+                                    continue;
+                                }
+                                Ok(m) => m,
+                            };
+                            match msg {
+                                UiCliIpcMsg::BUILD(_) => {
+                                    err!("Already hooked, unexpected message");
+                                    unreachable!();
+                                }
+                                UiCliIpcMsg::REBUILD(_) => {
+                                    err!("Unexpected message, you should not send REBUILD if not broken");
+                                    unreachable!();
+                                }
+                                UiCliIpcMsg::CONSOLE(data) => {
+                                    let mut buf = buf.lock().unwrap();
+                                    buf.extend(data);
+                                }
+                                UiCliIpcMsg::EXIT => {
+                                    end = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+                if end {
+                    _listener.take();
                 }
             }
         });
@@ -95,27 +127,38 @@ impl Drop for Terminal {
     fn drop(&mut self) {
         let mut stop = self.stop.lock().unwrap();
         *stop = true;
-        let send = self.send.lock().unwrap();
-        if let Some(send) = send.as_ref() {
-            send.send(TerminalMessage::Close).unwrap();
-        }
     }
 }
 
 impl Terminal {
-    pub fn try_hook(
-        &mut self,
-        recv: Receiver<TerminalMessage>,
-    ) -> Result<Receiver<TerminalMessage>, Box<dyn Error>> {
-        let mut recv_o = self.recv.lock().unwrap();
-        if recv_o.is_some() {
+    pub fn try_hook(&mut self, msg: WindowIpcMessage) -> Result<(), Box<dyn Error>> {
+        let listener = self.listener.clone();
+        let mut listener = listener.lock().unwrap();
+        if listener.is_some() {
             return Err("Terminal already hooked".into());
         }
-        *recv_o = Some(recv);
-        let (rsend, rrecv) = mpsc::channel();
-        let mut send = self.send.lock().unwrap();
-        *send = Some(rsend);
-        Ok(rrecv)
+        let msg = msg.message;
+        let msg = serde_json::from_str::<UiCliIpcMsg>(&msg)?;
+        let sock_name = match msg {
+            UiCliIpcMsg::BUILD(sock_name) => sock_name,
+            _ => return Err("Invalid message".into()),
+        };
+        let sock_name = sock_name.to_ns_name::<GenericNamespaced>()?;
+        let opts = ListenerOptions::new()
+            .name(sock_name)
+            .nonblocking(ListenerNonblockingMode::Both);
+        let lst = opts.create_sync()?;
+        *listener = Some(lst);
+        Ok(())
+    }
+    pub fn un_hook(&mut self) -> Result<(), Box<dyn Error>> {
+        let listener = self.listener.clone();
+        let mut listener = listener.lock().unwrap();
+        if listener.is_none() {
+            return Ok(());
+        }
+        let _listener = listener.take().unwrap();
+        Ok(())
     }
 }
 
@@ -140,8 +183,6 @@ impl Terminal {
     }
     fn render_row(&mut self, ui: &mut Ui, rows: Range<usize>) {
         self.gc_bufs();
-        // ui.label("01234567890123456789012345678901234567890123456789012345678901234567890123456789");
-        // Use this to make the line above the same length as the terminal
         ui.label("                                                                                                                                                                ");
         let buf = self.buf.clone();
         let buf = buf.lock().unwrap();
@@ -152,7 +193,7 @@ impl Terminal {
                 .filter(|&(_, &c)| c == b'\n')
                 .map(|(i, _)| i),
         );
-        if !buf[buf.len() - 1] == b'\n' {
+        if !buf.is_empty() && !(buf[buf.len() - 1] == b'\n') {
             data.push(buf.len());
         }
         let begin_line = min(data.len() - 1, rows.start);
@@ -204,6 +245,79 @@ impl SubWindow for Terminal {
         window.show(ctx, |ui| {
             self.show(ui);
         });
+    }
+    fn on_ipc(&mut self, msg: &str, _conn: &mut Stream) {
+        log!("Terminal got message: {}", msg);
+        let msg = serde_json::from_str::<UiCliIpcMsg>(msg);
+        match msg {
+            Ok(msg) => match msg {
+                UiCliIpcMsg::BUILD(s_name) => {
+                    let sock_name = s_name.clone().to_ns_name::<GenericNamespaced>().unwrap();
+                    let opts = ListenerOptions::new()
+                        .name(sock_name)
+                        .nonblocking(ListenerNonblockingMode::Both);
+                    let listener = opts.create_sync().unwrap();
+                    let self_listener = self.listener.clone();
+                    let mut self_listener = self_listener.lock().unwrap();
+                    if self_listener.is_some() {
+                        err!("Already hooked, unexpected message");
+                        main_send_msg(
+                            WindowIpcMessage {
+                                window_id: 0,
+                                message: serde_json::to_string(&UiCliIpcMsg::EXIT).unwrap(),
+                            },
+                            _conn,
+                        );
+                        return;
+                    }
+                    *self_listener = Some(listener);
+                    info!("Terminal hooked with sock {}", s_name);
+                    {
+                        let mut buf = self.buf.lock().unwrap();
+                        buf.clear();
+                    }
+                    main_send_msg(
+                        WindowIpcMessage {
+                            window_id: 0,
+                            message: serde_json::to_string(&UiCliIpcMsg::BUILD(s_name)).unwrap(),
+                        },
+                        _conn,
+                    );
+                }
+                UiCliIpcMsg::REBUILD(s_name) => {
+                    let sock_name = s_name.clone().to_ns_name::<GenericNamespaced>().unwrap();
+                    let opts = ListenerOptions::new()
+                        .name(sock_name)
+                        .nonblocking(ListenerNonblockingMode::Both);
+                    let listener = opts.create_sync().unwrap();
+                    let self_listener = self.listener.clone();
+                    let mut self_listener = self_listener.lock().unwrap();
+                    *self_listener = Some(listener);
+                    log!("Terminal rebuild with sock {}", s_name);
+                    main_send_msg(
+                        WindowIpcMessage {
+                            window_id: 0,
+                            message: serde_json::to_string(&UiCliIpcMsg::REBUILD(s_name)).unwrap(),
+                        },
+                        _conn,
+                    );
+                }
+                UiCliIpcMsg::CONSOLE(msg) => {
+                    let mut buf = self.buf.lock().unwrap();
+                    buf.extend(msg);
+                    // The other way has some issue now... Use the main ipc as a workaround
+                    // err!("Unexpected message, you should not send CONSOLE message at handshake");
+                    // unreachable!();
+                }
+                UiCliIpcMsg::EXIT => {
+                    err!("Unexpected message, you should not send EXIT message at handshake");
+                    unreachable!();
+                }
+            },
+            Err(e) => {
+                err!("Terminal IPC message decode error: {}", e);
+            }
+        }
     }
 }
 
